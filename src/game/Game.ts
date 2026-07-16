@@ -93,14 +93,17 @@ export class Game {
     }
 
     public update(
-        deltaSeconds: number,
+        songTimeSeconds: number,
         footState: FootState,
     ): void {
         if (this.state.status !== "playing") {
             return;
         }
 
-        this.state.gameTimeSeconds += deltaSeconds;
+        this.state.gameTimeSeconds = Math.max(
+            0,
+            songTimeSeconds,
+        );
 
         const judgmentResults = this.judgmentSystem.update(
             this.state.notes,
@@ -115,10 +118,6 @@ export class Game {
                 ...this.scoringSystem.getState(),
             };
 
-            /*
-             * When simultaneous notes are judged in the same frame, the
-             * final result becomes the currently displayed judgment.
-             */
             this.state.lastJudgment =
                 judgmentResults[judgmentResults.length - 1] ?? null;
         }
@@ -148,6 +147,18 @@ export class Game {
 
     private createInitialState(): GameState {
         return {
+            status: "idle",
+            gameTimeSeconds: 0,
+            notes: [],
+            score: { ...this.scoringSystem.getState() },
+            lastJudgment: null,
+        };
+    }
+
+    public reset(): void {
+        this.scoringSystem.reset();
+
+        this.state = {
             status: "idle",
             gameTimeSeconds: 0,
             notes: [],

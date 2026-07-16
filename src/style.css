@@ -249,3 +249,48 @@ kbd {
     cursor: not-allowed;
     opacity: 0.4;
 }
+
+.audio-loader {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+}
+
+.audio-loader label {
+    font-weight: 700;
+}
+
+.audio-loader input {
+    max-width: 230px;
+
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.78rem;
+}
+
+.audio-loader input::file-selector-button {
+    margin-right: 8px;
+    padding: 7px 10px;
+
+    color: #ffffff;
+    background: rgba(116, 145, 255, 0.18);
+    border: 1px solid rgba(145, 169, 255, 0.38);
+    border-radius: 7px;
+
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#audio-file-status {
+    max-width: 280px;
+    overflow: hidden;
+
+    color: rgba(255, 255, 255, 0.52);
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
