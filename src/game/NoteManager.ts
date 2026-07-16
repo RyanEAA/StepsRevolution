@@ -1,4 +1,7 @@
-import type { Lane, TapNote } from "../types/Note";
+import type {
+    Lane,
+    TapNote,
+} from "../types/Note";
 
 export interface ChartNoteDefinition {
     lane: Lane;
@@ -13,21 +16,22 @@ export class NoteManager {
     ): TapNote[] {
         this.nextNoteId = 1;
 
-        return definitions.map((definition) => ({
-            id: this.nextNoteId++,
-            lane: definition.lane,
-            hitTimeSeconds: definition.hitTimeSeconds,
-            judged: false,
-            judgment: null,
-        }));
+        return definitions
+            .map((definition) => ({
+                id: this.nextNoteId++,
+                lane: definition.lane,
+                hitTimeSeconds:
+                    definition.hitTimeSeconds,
+                judged: false,
+                judgment: null,
+            }))
+            .sort(
+                (left, right) =>
+                    left.hitTimeSeconds -
+                    right.hitTimeSeconds,
+            );
     }
 
-    /**
-     * Removes notes shortly after they have been judged.
-     *
-     * Unjudged notes remain available so JudgmentSystem can mark them
-     * as misses.
-     */
     public removeFinishedNotes(
         notes: readonly TapNote[],
         gameTimeSeconds: number,
@@ -40,7 +44,8 @@ export class NoteManager {
 
             return (
                 gameTimeSeconds <
-                note.hitTimeSeconds + removalDelaySeconds
+                note.hitTimeSeconds +
+                removalDelaySeconds
             );
         });
     }

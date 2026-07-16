@@ -1,62 +1,90 @@
 import type { FootState } from "../types/FootState";
-import { JudgmentSystem } from "./JudgmentSystem";
-import { NoteManager } from "./NoteManager";
-import type { ChartNoteDefinition } from "./NoteManager";
-import { ScoringSystem } from "./ScoringSystem";
-import type { GameState } from "./GameState";
 import type { TapNote } from "../types/Note";
 
-const TEST_CHART: readonly ChartNoteDefinition[] = [
-    { lane: 0, hitTimeSeconds: 2.0 },
-    { lane: 1, hitTimeSeconds: 2.5 },
-    { lane: 2, hitTimeSeconds: 3.0 },
-    { lane: 3, hitTimeSeconds: 3.5 },
+import { JudgmentSystem } from "./JudgmentSystem";
+import { NoteManager } from "./NoteManager";
+import type {
+    ChartNoteDefinition,
+} from "./NoteManager";
+import { ScoringSystem } from "./ScoringSystem";
+import type { GameState } from "./GameState";
 
-    { lane: 0, hitTimeSeconds: 4.0 },
-    { lane: 3, hitTimeSeconds: 4.5 },
-    { lane: 1, hitTimeSeconds: 5.0 },
-    { lane: 2, hitTimeSeconds: 5.5 },
-
-    { lane: 0, hitTimeSeconds: 6.0 },
-    { lane: 1, hitTimeSeconds: 6.25 },
-    { lane: 2, hitTimeSeconds: 6.5 },
-    { lane: 3, hitTimeSeconds: 6.75 },
-
-    { lane: 3, hitTimeSeconds: 7.5 },
-    { lane: 2, hitTimeSeconds: 8.0 },
-    { lane: 1, hitTimeSeconds: 8.5 },
-    { lane: 0, hitTimeSeconds: 9.0 },
-
-    { lane: 0, hitTimeSeconds: 10.0 },
-    { lane: 2, hitTimeSeconds: 10.0 },
-
-    { lane: 1, hitTimeSeconds: 11.0 },
-    { lane: 3, hitTimeSeconds: 11.0 },
-
-    { lane: 0, hitTimeSeconds: 12.0 },
-    { lane: 1, hitTimeSeconds: 12.5 },
-    { lane: 2, hitTimeSeconds: 13.0 },
-    { lane: 3, hitTimeSeconds: 13.5 },
-];
-
-const FINISH_TIME_SECONDS = 14.5;
 const JUDGED_NOTE_REMOVAL_DELAY_SECONDS = 0.45;
+const CHART_FINISH_DELAY_SECONDS = 1.0;
 
 export class Game {
-    private readonly noteManager = new NoteManager();
-    private readonly judgmentSystem = new JudgmentSystem();
-    private readonly scoringSystem = new ScoringSystem();
+    private readonly noteManager =
+        new NoteManager();
 
-    private state: GameState = this.createInitialState();
+    private readonly judgmentSystem =
+        new JudgmentSystem();
+
+    private readonly scoringSystem =
+        new ScoringSystem();
+
+    private loadedChart:
+        readonly ChartNoteDefinition[] = [];
+
+    private chartEndTimeSeconds = 0;
+
+    private state: GameState =
+        this.createInitialState();
+
+    public loadChart(
+        chart: readonly ChartNoteDefinition[],
+    ): void {
+        this.loadedChart = [...chart].sort(
+            (left, right) =>
+                left.hitTimeSeconds -
+                right.hitTimeSeconds,
+        );
+
+        this.chartEndTimeSeconds =
+            this.loadedChart.at(-1)
+                ?.hitTimeSeconds ?? 0;
+
+        this.reset();
+    }
+
+    public hasChart(): boolean {
+        return this.loadedChart.length > 0;
+    }
 
     public start(): void {
+        if (!this.hasChart()) {
+            throw new Error(
+                "Load a chart before starting the game.",
+            );
+        }
+
         this.scoringSystem.reset();
 
         this.state = {
             status: "playing",
             gameTimeSeconds: 0,
-            notes: this.noteManager.createNotes(TEST_CHART),
-            score: { ...this.scoringSystem.getState() },
+
+            notes: this.noteManager.createNotes(
+                this.loadedChart,
+            ),
+
+            score: {
+                ...this.scoringSystem.getState(),
+            },
+
+            lastJudgment: null,
+        };
+    }
+
+    public reset(): void {
+        this.scoringSystem.reset();
+
+        this.state = {
+            status: "idle",
+            gameTimeSeconds: 0,
+            notes: [],
+            score: {
+                ...this.scoringSystem.getState(),
+            },
             lastJudgment: null,
         };
     }
@@ -81,17 +109,6 @@ export class Game {
         this.state.status = "playing";
     }
 
-    public togglePause(): void {
-        if (this.state.status === "playing") {
-            this.pause();
-            return;
-        }
-
-        if (this.state.status === "paused") {
-            this.resume();
-        }
-    }
-
     public update(
         songTimeSeconds: number,
         footState: FootState,
@@ -105,21 +122,24 @@ export class Game {
             songTimeSeconds,
         );
 
-        const judgmentResults = this.judgmentSystem.update(
-            this.state.notes,
-            footState,
-            this.state.gameTimeSeconds,
-        );
+        const judgmentResults =
+            this.judgmentSystem.update(
+                this.state.notes,
+                footState,
+                this.state.gameTimeSeconds,
+            );
 
         if (judgmentResults.length > 0) {
-            this.scoringSystem.applyResults(judgmentResults);
+            this.scoringSystem.applyResults(
+                judgmentResults,
+            );
 
             this.state.score = {
                 ...this.scoringSystem.getState(),
             };
 
             this.state.lastJudgment =
-                judgmentResults[judgmentResults.length - 1] ?? null;
+                judgmentResults.at(-1) ?? null;
         }
 
         this.state.notes =
@@ -129,9 +149,13 @@ export class Game {
                 JUDGED_NOTE_REMOVAL_DELAY_SECONDS,
             );
 
+        const finishTime =
+            this.chartEndTimeSeconds +
+            CHART_FINISH_DELAY_SECONDS;
+
         if (
             this.state.notes.length === 0 &&
-            this.state.gameTimeSeconds >= FINISH_TIME_SECONDS
+            this.state.gameTimeSeconds >= finishTime
         ) {
             this.state.status = "finished";
         }
@@ -150,19 +174,9 @@ export class Game {
             status: "idle",
             gameTimeSeconds: 0,
             notes: [],
-            score: { ...this.scoringSystem.getState() },
-            lastJudgment: null,
-        };
-    }
-
-    public reset(): void {
-        this.scoringSystem.reset();
-
-        this.state = {
-            status: "idle",
-            gameTimeSeconds: 0,
-            notes: [],
-            score: { ...this.scoringSystem.getState() },
+            score: {
+                ...this.scoringSystem.getState(),
+            },
             lastJudgment: null,
         };
     }

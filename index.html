@@ -1,93 +1,110 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
 
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-        />
+<head>
+  <meta charset="UTF-8" />
 
-        <meta
-            name="description"
-            content="A browser-based camera rhythm game prototype."
-        />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-        <title>Camera Rhythm Game</title>
-    </head>
+  <meta name="description" content="A browser-based camera rhythm game prototype." />
 
-    <body>
-        <main class="app">
-            <header class="app__header">
-                <div>
-                    <p class="eyebrow">Prototype</p>
-                    <h1>Camera Rhythm Game</h1>
-                </div>
+  <title>Camera Rhythm Game</title>
+</head>
 
-                <div class="header-actions">
-                  <div class="controls">
-                      <div class="control-group">
-                          <span class="control-group__label">Left foot</span>
-                          <kbd>A</kbd>
-                          <span>/</span>
-                          <kbd>D</kbd>
-                      </div>
+<body>
+  <main class="app">
+    <header class="app__header">
+      <div>
+        <p class="eyebrow">Prototype</p>
+        <h1>Camera Rhythm Game</h1>
+      </div>
 
-                      <div class="control-group">
-                          <span class="control-group__label">Right foot</span>
-                          <kbd>←</kbd>
-                          <span>/</span>
-                          <kbd>→</kbd>
-                      </div>
-                  </div>
+      <div class="header-actions">
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-group__label">Left foot</span>
+            <kbd>A</kbd>
+            <span>/</span>
+            <kbd>D</kbd>
+          </div>
 
-                  <div class="game-buttons">
-                      <button id="start-button" type="button">
-                          Start
-                      </button>
+          <div class="control-group">
+            <span class="control-group__label">Right foot</span>
+            <kbd>←</kbd>
+            <span>/</span>
+            <kbd>→</kbd>
+          </div>
+        </div>
 
-                      <button id="pause-button" type="button">
-                          Pause
-                      </button>
+        <div class="game-buttons">
+          <button id="start-button" type="button">
+            Start
+          </button>
 
-                      <button id="restart-button" type="button">
-                          Restart
-                      </button>
-                  </div>
+          <button id="pause-button" type="button">
+            Pause
+          </button>
 
-                  <div class="audio-loader">
-                    <label for="audio-file-input">
-                        Song audio
-                    </label>
+          <button id="restart-button" type="button">
+            Restart
+          </button>
+        </div>
 
-                    <input
-                        id="audio-file-input"
-                        type="file"
-                        accept="audio/*,.mp3,.ogg,.wav,.m4a"
-                    />
+        <div class="simfile-loader">
+          <label for="simfile-input">
+            StepMania chart
+          </label>
 
-                    <span id="audio-file-status">
-                        No audio loaded
-                    </span>
-                </div>
-              </div>
-            </header>
+          <input id="simfile-input" type="file" accept=".sm,text/plain" />
 
-            <section class="game-container">
-                <canvas
-                    id="game-canvas"
-                    aria-label="Four-lane rhythm game playfield"
-                ></canvas>
-            </section>
+          <span id="simfile-status">
+            No .sm file loaded
+          </span>
+        </div>
 
-            <footer class="app__footer">
-                <p>
-                    Move each foot horizontally and verify that the normalized
-                    position and lane values update correctly.
-                </p>
-            </footer>
-        </main>
+        <div class="chart-selector">
+          <label for="chart-select">
+            Difficulty
+          </label>
 
-        <script type="module" src="/src/main.ts"></script>
-    </body>
+          <select id="chart-select" disabled>
+            <option value="">
+              Load a .sm file first
+            </option>
+          </select>
+
+          <span id="chart-status">
+            No chart selected
+          </span>
+        </div>
+
+        <div class="audio-loader">
+          <label for="audio-file-input">
+            Song audio
+          </label>
+
+          <input id="audio-file-input" type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a" />
+
+          <span id="audio-file-status">
+            No audio loaded
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <section class="game-container">
+      <canvas id="game-canvas" aria-label="Four-lane rhythm game playfield"></canvas>
+    </section>
+
+    <footer class="app__footer">
+      <p>
+        Move each foot horizontally and verify that the normalized
+        position and lane values update correctly.
+      </p>
+    </footer>
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
