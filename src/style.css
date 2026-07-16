@@ -203,3 +203,49 @@ kbd {
         display: none;
     }
 }
+
+.header-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.game-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.game-buttons button {
+    min-width: 84px;
+    padding: 9px 15px;
+
+    color: #ffffff;
+    background: rgba(116, 145, 255, 0.18);
+    border: 1px solid rgba(145, 169, 255, 0.38);
+    border-radius: 8px;
+
+    font-weight: 700;
+    cursor: pointer;
+
+    transition:
+        background 120ms ease,
+        border-color 120ms ease,
+        transform 120ms ease;
+}
+
+.game-buttons button:hover:not(:disabled) {
+    background: rgba(116, 145, 255, 0.32);
+    border-color: rgba(170, 190, 255, 0.7);
+    transform: translateY(-1px);
+}
+
+.game-buttons button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.game-buttons button:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
