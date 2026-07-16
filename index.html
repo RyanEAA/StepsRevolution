@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        />
+
+        <meta
+            name="description"
+            content="A browser-based camera rhythm game prototype."
+        />
+
+        <title>Camera Rhythm Game</title>
+    </head>
+
+    <body>
+        <main class="app">
+            <header class="app__header">
+                <div>
+                    <p class="eyebrow">Prototype</p>
+                    <h1>Camera Rhythm Game</h1>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <span class="control-group__label">Left foot</span>
+                        <kbd>A</kbd>
+                        <span>/</span>
+                        <kbd>D</kbd>
+                    </div>
+
+                    <div class="control-group">
+                        <span class="control-group__label">Right foot</span>
+                        <kbd>←</kbd>
+                        <span>/</span>
+                        <kbd>→</kbd>
+                    </div>
+                </div>
+            </header>
+
+            <section class="game-container">
+                <canvas
+                    id="game-canvas"
+                    aria-label="Four-lane rhythm game playfield"
+                ></canvas>
+            </section>
+
+            <footer class="app__footer">
+                <p>
+                    Move each foot horizontally and verify that the normalized
+                    position and lane values update correctly.
+                </p>
+            </footer>
+        </main>
+
+        <script type="module" src="/src/main.ts"></script>
+    </body>
+</html>
