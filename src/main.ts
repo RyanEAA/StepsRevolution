@@ -1189,22 +1189,48 @@ async function handleRestart(): Promise<void> {
   }
 }
 
-function exitGameplay(): void {
+function returnToSongSelection(): void {
+  /*
+   * End the current play session, but do not clear the imported
+   * library, selected pack, or selected song.
+   */
   audioClock.stop();
   game.reset();
 
   previousGameStatus =
     game.getState().status;
 
-  if (selectedLibrarySong) {
+  songPreviewPlayer.stop();
+
+  if (selectedSongDialog.open) {
+    selectedSongDialog.close();
+  }
+
+  /*
+   * Prefer returning to the current pack's song list.
+   */
+  if (libraryView.getSelectedPack()) {
     viewManager.show(
       "song-selection",
     );
-  } else {
-    viewManager.show(
-      "library-import",
-    );
+
+    return;
   }
+
+  /*
+   * A library exists, but no pack is currently selected.
+   */
+  if (loadedLibrary) {
+    viewManager.show(
+      "pack-selection",
+    );
+
+    return;
+  }
+
+  viewManager.show(
+    "library-import",
+  );
 }
 
 /* =========================================================
@@ -1485,7 +1511,7 @@ navGameButton.addEventListener(
 
 exitGameButton.addEventListener(
   "click",
-  exitGameplay,
+  returnToSongSelection,
 );
 
 resultsReplayButton.addEventListener(
