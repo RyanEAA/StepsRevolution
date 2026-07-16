@@ -17,8 +17,9 @@ export class LibraryView {
 
     private library: SongLibrary | null = null;
     private selectedPack: SongPack | null = null;
+    private selectedSongId: string | null = null;
 
-    constructor(
+    public constructor(
         packContainer: HTMLElement,
         songContainer: HTMLElement,
         songSectionTitle: HTMLElement,
@@ -35,14 +36,19 @@ export class LibraryView {
     ): void {
         this.library = library;
         this.selectedPack = null;
+        this.selectedSongId = null;
 
         this.songContainer.replaceChildren();
+        this.songSectionTitle.textContent =
+            "Select a song";
+
         this.renderPacks();
     }
 
     public clear(): void {
         this.library = null;
         this.selectedPack = null;
+        this.selectedSongId = null;
 
         this.packContainer.replaceChildren();
         this.songContainer.replaceChildren();
@@ -55,6 +61,7 @@ export class LibraryView {
         pack: SongPack,
     ): void {
         this.selectedPack = pack;
+        this.selectedSongId = null;
 
         this.songSectionTitle.textContent =
             pack.name;
@@ -62,8 +69,39 @@ export class LibraryView {
         this.renderSongs(pack);
     }
 
+    public clearSelectedSong(): void {
+        this.selectedSongId = null;
+
+        if (this.selectedPack) {
+            this.renderSongs(this.selectedPack);
+        }
+    }
+
+    /**
+     * Compatibility alias for older main.ts code.
+     *
+     * This no longer collapses an expanded card because cards do not
+     * expand anymore. It simply clears the selected-card highlight.
+     */
+    public collapseExpandedSong(): void {
+        this.clearSelectedSong();
+    }
+
     public getSelectedPack(): SongPack | null {
         return this.selectedPack;
+    }
+
+    public getSelectedSong(): SongEntry | null {
+        if (!this.selectedPack || !this.selectedSongId) {
+            return null;
+        }
+
+        return (
+            this.selectedPack.songs.find(
+                (song) =>
+                    song.id === this.selectedSongId,
+            ) ?? null
+        );
     }
 
     public getLibrary(): SongLibrary | null {
@@ -141,13 +179,49 @@ export class LibraryView {
 
         for (const song of pack.songs) {
             const card =
-                document.createElement("button");
+                document.createElement("article");
 
-            card.type = "button";
             card.className =
                 "library-card song-card";
 
-            card.append(
+            card.dataset.songId =
+                song.id;
+
+            const isSelected =
+                song.id === this.selectedSongId;
+
+            if (isSelected) {
+                card.classList.add(
+                    "song-card--selected",
+                );
+            }
+
+            if (!song.audioFile) {
+                card.classList.add(
+                    "library-card--unavailable",
+                );
+            }
+
+            const summaryButton =
+                document.createElement("button");
+
+            summaryButton.type = "button";
+            summaryButton.className =
+                "song-card__summary";
+
+            summaryButton.setAttribute(
+                "aria-pressed",
+                isSelected
+                    ? "true"
+                    : "false",
+            );
+
+            summaryButton.setAttribute(
+                "aria-label",
+                `Select ${song.title} by ${song.artist}`,
+            );
+
+            summaryButton.append(
                 this.createArtwork(
                     song.bannerUrl,
                     song.title,
@@ -163,12 +237,14 @@ export class LibraryView {
             const title =
                 document.createElement("h3");
 
-            title.textContent = song.title;
+            title.textContent =
+                song.title;
 
             const artist =
                 document.createElement("p");
 
-            artist.textContent = song.artist;
+            artist.textContent =
+                song.artist;
 
             const details =
                 document.createElement("span");
@@ -188,10 +264,6 @@ export class LibraryView {
             if (!song.audioFile) {
                 details.textContent +=
                     " · Missing audio";
-
-                card.classList.add(
-                    "library-card--unavailable",
-                );
             }
 
             content.append(
@@ -200,12 +272,14 @@ export class LibraryView {
                 details,
             );
 
-            card.append(content);
+            summaryButton.append(content);
+            card.append(summaryButton);
 
-            card.addEventListener(
+            summaryButton.addEventListener(
                 "click",
                 () => {
-                    this.callbacks.onSongSelected(
+                    this.selectSong(
+                        pack,
                         song,
                     );
                 },
@@ -213,6 +287,21 @@ export class LibraryView {
 
             this.songContainer.append(card);
         }
+    }
+
+    private selectSong(
+        pack: SongPack,
+        song: SongEntry,
+    ): void {
+        this.selectedSongId = song.id;
+
+        /*
+         * Re-rendering only changes the selected highlight. Card sizes
+         * remain unchanged, so the grid does not jump or reflow.
+         */
+        this.renderSongs(pack);
+
+        this.callbacks.onSongSelected(song);
     }
 
     private createArtwork(
@@ -230,7 +319,9 @@ export class LibraryView {
                 document.createElement("img");
 
             image.src = imageUrl;
-            image.alt = `${label} artwork`;
+            image.alt =
+                `${label} artwork`;
+
             image.loading = "lazy";
 
             artwork.append(image);
@@ -242,7 +333,10 @@ export class LibraryView {
             document.createElement("span");
 
         placeholder.textContent =
-            label.slice(0, 1).toUpperCase();
+            label
+                .trim()
+                .slice(0, 1)
+                .toUpperCase() || "?";
 
         artwork.append(placeholder);
 

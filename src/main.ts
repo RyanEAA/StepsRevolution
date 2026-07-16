@@ -9,6 +9,7 @@ import { KeyboardInput } from "./input/KeyboardInput";
 import { CanvasRenderer } from "./rendering/CanvasRenderer";
 import { RuntimeChartBuilder } from "./stepmania/RuntimeChartBuilder";
 import { SimfileParser } from "./stepmania/SimfileParser";
+import { SongPreviewPlayer } from "./audio/SongPreviewPlayer";
 import type {
   StepManiaChart,
   StepManiaSimfile,
@@ -117,50 +118,6 @@ const songCardContainer =
 const songSectionTitle =
   requireElement<HTMLElement>(
     "#song-section-title",
-  );
-
-/* =========================================================
-   SELECTED SONG PANEL
-   ========================================================= */
-
-const selectedSongPanel =
-  requireElement<HTMLElement>(
-    "#selected-song-panel",
-  );
-
-const selectedSongImage =
-  requireElement<HTMLImageElement>(
-    "#selected-song-image",
-  );
-
-const selectedSongTitle =
-  requireElement<HTMLElement>(
-    "#selected-song-title",
-  );
-
-const selectedSongArtist =
-  requireElement<HTMLElement>(
-    "#selected-song-artist",
-  );
-
-const selectedSongBpm =
-  requireElement<HTMLElement>(
-    "#selected-song-bpm",
-  );
-
-const selectedSongPack =
-  requireElement<HTMLElement>(
-    "#selected-song-pack",
-  );
-
-const libraryChartSelect =
-  requireElement<HTMLSelectElement>(
-    "#library-chart-select",
-  );
-
-const playSelectedSongButton =
-  requireElement<HTMLButtonElement>(
-    "#play-selected-song-button",
   );
 
 /* =========================================================
@@ -287,6 +244,11 @@ const viewManager = new ViewManager({
   results: resultsView,
 });
 
+/* =========================================================
+    SONGPREVIEW PLAYER
+    ========================================================= */
+const songPreviewPlayer = new SongPreviewPlayer();
+
 const input = new KeyboardInput();
 const renderer = new CanvasRenderer(canvas);
 const game = new Game();
@@ -317,8 +279,225 @@ let previousGameStatus =
   game.getState().status;
 
 /* =========================================================
+    SELECTED SONG DIALOG
+    ========================================================= */
+const selectedSongDialog =
+  requireElement<HTMLDialogElement>(
+    "#selected-song-dialog",
+  );
+
+const closeSongDialogButton =
+  requireElement<HTMLButtonElement>(
+    "#close-song-dialog-button",
+  );
+
+const selectedSongImage =
+  requireElement<HTMLImageElement>(
+    "#selected-song-image",
+  );
+
+const selectedSongTitle =
+  requireElement<HTMLElement>(
+    "#selected-song-title",
+  );
+
+const selectedSongArtist =
+  requireElement<HTMLElement>(
+    "#selected-song-artist",
+  );
+
+const selectedSongBpm =
+  requireElement<HTMLElement>(
+    "#selected-song-bpm",
+  );
+
+const selectedSongPack =
+  requireElement<HTMLElement>(
+    "#selected-song-pack",
+  );
+
+const selectedSongPreviewStatus =
+  requireElement<HTMLElement>(
+    "#selected-song-preview-status",
+  );
+
+const libraryDifficultyList =
+  document.querySelector<HTMLElement>(
+    "#library-difficulty-list",
+  )!;
+
+const playSelectedSongButton =
+  document.querySelector<HTMLButtonElement>(
+    "#play-selected-song-button",
+  )!;
+
+playSelectedSongButton.addEventListener(
+  "click",
+  () => {
+    void handlePlaySelectedSong();
+  },
+);
+
+/* =========================================================
    LIBRARY VIEW
    ========================================================= */
+
+function populateLibraryDifficultyList(
+  song: SongEntry,
+): void {
+  libraryDifficultyList.replaceChildren();
+
+  selectedLibraryChart = null;
+  playSelectedSongButton.disabled = true;
+
+  for (const chart of song.simfile.charts) {
+    const button =
+      document.createElement("button");
+
+    button.type = "button";
+    button.className =
+      "difficulty-button";
+
+    const name =
+      document.createElement("span");
+
+    name.className =
+      "difficulty-button__name";
+
+    name.textContent =
+      chart.difficulty;
+
+    const meter =
+      document.createElement("strong");
+
+    meter.className =
+      "difficulty-button__meter";
+
+    meter.textContent =
+      chart.meter.toString();
+
+    const noteCount =
+      document.createElement("small");
+
+    noteCount.textContent =
+      `${chart.notes.length} taps`;
+
+    button.append(
+      name,
+      meter,
+      noteCount,
+    );
+
+    button.addEventListener(
+      "click",
+      () => {
+        selectedLibraryChart =
+          chart;
+
+        for (
+          const existingButton of
+          libraryDifficultyList.querySelectorAll(
+            ".difficulty-button",
+          )
+        ) {
+          existingButton.classList.remove(
+            "difficulty-button--selected",
+          );
+        }
+
+        button.classList.add(
+          "difficulty-button--selected",
+        );
+
+        playSelectedSongButton.disabled =
+          song.audioFile === null;
+      },
+    );
+
+    libraryDifficultyList.append(
+      button,
+    );
+  }
+}
+
+function openSelectedSongDialog(): void {
+  if (!selectedSongDialog.open) {
+    selectedSongImage.hidden = false;
+    selectedSongDialog.showModal();
+  }
+}
+
+function closeSelectedSongDialog(
+  clearSelection = false,
+): void {
+  songPreviewPlayer.stop();
+
+  if (selectedSongDialog.open) {
+    selectedSongDialog.close();
+  }
+
+  selectedSongPreviewStatus.textContent =
+    "Preview stopped";
+
+  if (clearSelection) {
+    selectedLibrarySong = null;
+    selectedLibraryChart = null;
+
+    libraryView.clearSelectedSong();
+  }
+}
+
+function handleLibrarySongSelection(
+  song: SongEntry,
+): void {
+  songPreviewPlayer.stop();
+
+  selectedLibrarySong = song;
+  selectedLibraryChart = null;
+
+  selectedSongTitle.textContent =
+    song.title;
+
+  selectedSongArtist.textContent =
+    song.artist;
+
+  selectedSongPack.textContent =
+    `Pack: ${song.packName}`;
+
+  selectedSongBpm.textContent =
+    formatBpmRange(
+      song.simfile.bpmSegments.map(
+        (segment) => segment.bpm,
+      ),
+    );
+
+  if (song.bannerUrl) {
+    selectedSongImage.src =
+      song.bannerUrl;
+
+    selectedSongImage.alt =
+      `${song.title} banner`;
+
+  } else {
+    selectedSongImage.removeAttribute(
+      "src",
+    );
+
+    selectedSongImage.alt = "";
+    selectedSongImage.hidden = true;
+  }
+
+  populateLibraryDifficultyList(song);
+
+  selectedSongPreviewStatus.textContent =
+    song.audioFile
+      ? "♪ Preview loading..."
+      : "Preview unavailable";
+
+  openSelectedSongDialog();
+
+  void playSongPreview(song);
+}
 
 const libraryView = new LibraryView(
   packCardContainer,
@@ -326,19 +505,18 @@ const libraryView = new LibraryView(
   songSectionTitle,
   {
     onPackSelected(pack: SongPack): void {
+      songPreviewPlayer.stop();
+
+      if (selectedSongDialog.open) {
+        selectedSongDialog.close();
+      }
+
       selectedLibrarySong = null;
       selectedLibraryChart = null;
 
-      resetSelectedSongPanel();
+      console.log("Selected pack:", pack);
 
-      console.log(
-        "Selected pack:",
-        pack,
-      );
-
-      viewManager.show(
-        "song-selection",
-      );
+      viewManager.show("song-selection");
     },
 
     onSongSelected(song: SongEntry): void {
@@ -347,6 +525,74 @@ const libraryView = new LibraryView(
   },
 );
 
+async function playSongPreview(
+  song: SongEntry,
+): Promise<void> {
+  songPreviewPlayer.stop();
+
+  if (!song.audioFile) {
+    selectedSongPreviewStatus.textContent =
+      "Preview unavailable";
+
+    return;
+  }
+
+  const declaredStart =
+    song.simfile.sampleStartSeconds;
+
+  const declaredLength =
+    song.simfile.sampleLengthSeconds;
+
+  const previewStartSeconds =
+    declaredStart > 0
+      ? declaredStart
+      : 20;
+
+  const previewDurationSeconds =
+    declaredLength > 0
+      ? Math.min(
+        declaredLength,
+        15,
+      )
+      : 12;
+
+  try {
+    await songPreviewPlayer.play(
+      song.audioFile,
+      {
+        startSeconds:
+          previewStartSeconds,
+
+        durationSeconds:
+          previewDurationSeconds,
+      },
+    );
+
+    /*
+     * The user may have selected another song while this preview was
+     * loading. Avoid updating the status for the wrong song.
+     */
+    if (
+      selectedLibrarySong?.id === song.id &&
+      selectedSongDialog.open
+    ) {
+      selectedSongPreviewStatus.textContent =
+        "♪ Preview playing";
+    }
+  } catch (error) {
+    console.error(
+      "Could not play song preview:",
+      error,
+    );
+
+    if (
+      selectedLibrarySong?.id === song.id
+    ) {
+      selectedSongPreviewStatus.textContent =
+        "Preview could not be played";
+    }
+  }
+}
 /* =========================================================
    ANIMATION LOOP
    ========================================================= */
@@ -742,7 +988,6 @@ async function handleLibraryFolderSelection(): Promise<void> {
     selectedLibraryChart = null;
 
     libraryView.setLibrary(newLibrary);
-    resetSelectedSongPanel();
 
     libraryImportStatus.textContent =
       `${newLibrary.packs.length} ${newLibrary.packs.length === 1
@@ -780,136 +1025,11 @@ async function handleLibraryFolderSelection(): Promise<void> {
 }
 
 /* =========================================================
-   LIBRARY SONG SELECTION
-   ========================================================= */
-
-function handleLibrarySongSelection(
-  song: SongEntry,
-): void {
-  selectedLibrarySong = song;
-  selectedLibraryChart = null;
-
-  selectedSongPanel.hidden = false;
-
-  selectedSongTitle.textContent =
-    song.title;
-
-  selectedSongArtist.textContent =
-    song.artist;
-
-  selectedSongPack.textContent =
-    `Pack: ${song.packName}`;
-
-  selectedSongBpm.textContent =
-    formatBpmRange(
-      song.simfile.bpmSegments.map(
-        (segment) => segment.bpm,
-      ),
-    );
-
-  if (song.bannerUrl) {
-    selectedSongImage.src =
-      song.bannerUrl;
-
-    selectedSongImage.alt =
-      `${song.title} banner`;
-
-    selectedSongImage.hidden = false;
-  } else {
-    selectedSongImage.removeAttribute(
-      "src",
-    );
-
-    selectedSongImage.alt = "";
-    selectedSongImage.hidden = true;
-  }
-
-  populateLibraryChartSelect(song);
-
-  libraryImportStatus.textContent =
-    `Selected: ${song.title} — ${song.artist}`;
-}
-
-function populateLibraryChartSelect(
-  song: SongEntry,
-): void {
-  libraryChartSelect.replaceChildren();
-
-  const placeholder =
-    document.createElement("option");
-
-  placeholder.value = "";
-  placeholder.textContent =
-    "Select difficulty";
-
-  libraryChartSelect.append(
-    placeholder,
-  );
-
-  song.simfile.charts.forEach(
-    (chart, index) => {
-      const option =
-        document.createElement("option");
-
-      option.value =
-        index.toString();
-
-      option.textContent =
-        `${chart.difficulty} · ` +
-        `Meter ${chart.meter} · ` +
-        `${chart.notes.length} taps`;
-
-      libraryChartSelect.append(
-        option,
-      );
-    },
-  );
-
-  libraryChartSelect.disabled =
-    song.simfile.charts.length === 0;
-
-  libraryChartSelect.value = "";
-
-  playSelectedSongButton.disabled = true;
-}
-
-function handleLibraryChartSelection(): void {
-  selectedLibraryChart = null;
-  playSelectedSongButton.disabled = true;
-
-  if (!selectedLibrarySong) {
-    return;
-  }
-
-  const chartIndex =
-    Number.parseInt(
-      libraryChartSelect.value,
-      10,
-    );
-
-  if (!Number.isInteger(chartIndex)) {
-    return;
-  }
-
-  const chart =
-    selectedLibrarySong.simfile
-      .charts[chartIndex];
-
-  if (!chart) {
-    return;
-  }
-
-  selectedLibraryChart = chart;
-
-  playSelectedSongButton.disabled =
-    selectedLibrarySong.audioFile === null;
-}
-
-/* =========================================================
    LIBRARY SONG LAUNCH
    ========================================================= */
 
 async function handlePlaySelectedSong(): Promise<void> {
+
   const song = selectedLibrarySong;
   const chart = selectedLibraryChart;
 
@@ -924,7 +1044,8 @@ async function handlePlaySelectedSong(): Promise<void> {
     return;
   }
 
-  playSelectedSongButton.disabled = true;
+  closeSelectedSongDialog();
+
 
   try {
     audioClock.stop();
@@ -938,9 +1059,7 @@ async function handlePlaySelectedSong(): Promise<void> {
       chart,
     );
 
-    loadedSimfile =
-      song.simfile;
-
+    loadedSimfile = song.simfile;
     selectedChart = chart;
 
     gameplayTitle.textContent =
@@ -956,13 +1075,8 @@ async function handlePlaySelectedSong(): Promise<void> {
         audioClock.getDurationSeconds(),
       );
 
-    navGameButton.disabled = false;
-
     viewManager.show("gameplay");
 
-    /*
-     * Start immediately after selecting Play.
-     */
     game.start();
     previousGameStatus = "playing";
 
@@ -976,8 +1090,6 @@ async function handlePlaySelectedSong(): Promise<void> {
     viewManager.show(
       "song-selection",
     );
-  } finally {
-    handleLibraryChartSelection();
   }
 }
 
@@ -1130,40 +1242,6 @@ function showResults(): void {
    UI HELPERS
    ========================================================= */
 
-function resetSelectedSongPanel(): void {
-  selectedSongPanel.hidden = true;
-
-  selectedSongTitle.textContent =
-    "No song selected";
-
-  selectedSongArtist.textContent =
-    "Unknown artist";
-
-  selectedSongBpm.textContent =
-    "BPM —";
-
-  selectedSongPack.textContent =
-    "Pack —";
-
-  selectedSongImage.removeAttribute("src");
-  selectedSongImage.alt = "";
-  selectedSongImage.hidden = true;
-
-  libraryChartSelect.replaceChildren();
-
-  const option =
-    document.createElement("option");
-
-  option.value = "";
-  option.textContent =
-    "Select a song first";
-
-  libraryChartSelect.append(option);
-  libraryChartSelect.disabled = true;
-
-  playSelectedSongButton.disabled = true;
-}
-
 function formatBpmRange(
   bpmValues: readonly number[],
 ): string {
@@ -1294,6 +1372,8 @@ function cleanUp(): void {
     "beforeunload",
     cleanUp,
   );
+
+  songPreviewPlayer.destroy();
 }
 
 /* =========================================================
@@ -1326,18 +1406,6 @@ audioFileInput.addEventListener(
   },
 );
 
-libraryChartSelect.addEventListener(
-  "change",
-  handleLibraryChartSelection,
-);
-
-playSelectedSongButton.addEventListener(
-  "click",
-  () => {
-    void handlePlaySelectedSong();
-  },
-);
-
 startButton.addEventListener(
   "click",
   () => {
@@ -1362,10 +1430,10 @@ restartButton.addEventListener(
 backToPacksButton.addEventListener(
   "click",
   () => {
+    closeSelectedSongDialog(true);
+
     selectedLibrarySong = null;
     selectedLibraryChart = null;
-
-    resetSelectedSongPanel();
 
     viewManager.show(
       "pack-selection",
@@ -1376,6 +1444,8 @@ backToPacksButton.addEventListener(
 importAnotherLibraryButton.addEventListener(
   "click",
   () => {
+    songPreviewPlayer.stop();
+    libraryView.collapseExpandedSong();
     viewManager.show(
       "library-import",
     );
@@ -1385,6 +1455,8 @@ importAnotherLibraryButton.addEventListener(
 navLibraryButton.addEventListener(
   "click",
   () => {
+    songPreviewPlayer.stop();
+
     if (loadedLibrary) {
       viewManager.show(
         "pack-selection",
@@ -1449,11 +1521,68 @@ window.addEventListener(
   cleanUp,
 );
 
+closeSongDialogButton.addEventListener(
+  "click",
+  () => {
+    closeSelectedSongDialog();
+  },
+);
+
+selectedSongDialog.addEventListener(
+  "cancel",
+  (event) => {
+    /*
+     * Prevent the browser from closing it before our preview cleanup
+     * runs.
+     */
+    event.preventDefault();
+    closeSelectedSongDialog();
+  },
+);
+
+selectedSongDialog.addEventListener(
+  "click",
+  (event) => {
+    if (
+      event.target === selectedSongDialog
+    ) {
+      closeSelectedSongDialog();
+    }
+  },
+);
+
+importAnotherLibraryButton.addEventListener(
+  "click",
+  () => {
+    closeSelectedSongDialog(true);
+
+    viewManager.show(
+      "library-import",
+    );
+  },
+);
+
+navLibraryButton.addEventListener(
+  "click",
+  () => {
+    closeSelectedSongDialog();
+
+    if (loadedLibrary) {
+      viewManager.show(
+        "pack-selection",
+      );
+    } else {
+      viewManager.show(
+        "library-import",
+      );
+    }
+  },
+);
+
 /* =========================================================
    INITIALIZATION
    ========================================================= */
 
-resetSelectedSongPanel();
 updateButtonState();
 
 viewManager.show(

@@ -8,14 +8,15 @@
 
   <meta name="description" content="A browser-based camera rhythm game compatible with StepMania song packs." />
 
-  <title>Camera Rhythm Game</title>
+  <title>Dance Vision</title>
 </head>
 
 <body>
   <main id="app" class="app">
-    <!-- =======================================================
-                 GLOBAL HEADER
-                 ======================================================= -->
+
+    <!-- =====================================================
+         GLOBAL HEADER
+         ===================================================== -->
 
     <header class="app-header">
       <div class="app-brand">
@@ -34,9 +35,9 @@
       </nav>
     </header>
 
-    <!-- =======================================================
-                 VIEW 1: LIBRARY IMPORT
-                 ======================================================= -->
+    <!-- =====================================================
+         VIEW 1: LIBRARY IMPORT
+         ===================================================== -->
 
     <section id="library-import-view" class="app-view" aria-labelledby="library-import-title">
       <div class="view-heading">
@@ -86,8 +87,7 @@
         </p>
       </div>
 
-      <!-- Temporary individual-file tools.
-                     Keep these while developing and remove later. -->
+      <!-- Temporary developer tools -->
 
       <details class="developer-panel">
         <summary>
@@ -95,6 +95,7 @@
         </summary>
 
         <div class="developer-panel__content">
+
           <div class="file-control">
             <label for="simfile-input">
               StepMania simfile
@@ -134,13 +135,14 @@
               No audio loaded
             </span>
           </div>
+
         </div>
       </details>
     </section>
 
-    <!-- =======================================================
-                 VIEW 2: PACK SELECTION
-                 ======================================================= -->
+    <!-- =====================================================
+         VIEW 2: PACK SELECTION
+         ===================================================== -->
 
     <section id="pack-selection-section" class="app-view library-section" aria-labelledby="pack-selection-title" hidden>
       <div class="view-heading library-section__header">
@@ -164,9 +166,9 @@
       <div id="pack-card-container" class="library-grid pack-grid" aria-live="polite"></div>
     </section>
 
-    <!-- =======================================================
-                 VIEW 3: DDR-STYLE SONG SELECTION
-                 ======================================================= -->
+    <!-- =====================================================
+         VIEW 3: SONG SELECTION
+         ===================================================== -->
 
     <section id="song-selection-section" class="app-view library-section song-selection-view"
       aria-labelledby="song-section-title" hidden>
@@ -183,27 +185,33 @@
           </h2>
 
           <p class="view-description">
-            Browse the songs in this pack.
+            Select a song to hear a preview, choose a difficulty,
+            and begin playing.
           </p>
         </div>
       </div>
 
-      <!--
-                    Initially, LibraryView.ts can continue rendering cards
-                    here. Later this container can become a horizontal
-                    DDR-style song wheel.
-                -->
+      <div class="song-browser">
 
-      <div id="song-card-container" class="library-grid song-grid" aria-live="polite"></div>
+        <!-- Independently scrolling song list -->
 
-      <!-- Future DDR-style selection panel -->
-
-      <aside id="selected-song-panel" class="selected-song-panel" hidden>
-        <div class="selected-song-panel__artwork">
-          <img id="selected-song-image" src="" alt="" />
+        <div class="song-browser__list">
+          <div id="song-card-container" class="library-grid song-grid" aria-live="polite"></div>
         </div>
 
-        <div class="selected-song-panel__details">
+      </div>
+    </section>
+    <dialog id="selected-song-dialog" class="song-dialog">
+      <div class="song-dialog__content">
+        <button id="close-song-dialog-button" type="button" class="song-dialog__close" aria-label="Close song details">
+          ×
+        </button>
+
+        <div class="song-dialog__artwork">
+          <img id="selected-song-image" src="" alt="" hidden />
+        </div>
+
+        <div class="song-dialog__details">
           <p class="eyebrow">Selected song</p>
 
           <h3 id="selected-song-title">
@@ -215,37 +223,28 @@
           </p>
 
           <div class="selected-song-metadata">
-            <span id="selected-song-bpm">
-              BPM —
-            </span>
-
-            <span id="selected-song-pack">
-              Pack —
-            </span>
+            <span id="selected-song-bpm">BPM —</span>
+            <span id="selected-song-pack">Pack —</span>
           </div>
 
-          <div class="difficulty-selection">
-            <label for="library-chart-select">
-              Difficulty
-            </label>
+          <p id="selected-song-preview-status" class="selected-song-preview-status">
+            Select a song to begin preview
+          </p>
 
-            <select id="library-chart-select" disabled>
-              <option value="">
-                Select a song first
-              </option>
-            </select>
-          </div>
+          <h4>Difficulty</h4>
+
+          <div id="library-difficulty-list" class="song-card__difficulty-list"></div>
 
           <button id="play-selected-song-button" type="button" class="primary-button" disabled>
-            Play
+            Play selected difficulty
           </button>
         </div>
-      </aside>
-    </section>
+      </div>
+    </dialog>
 
-    <!-- =======================================================
-                 VIEW 4: GAMEPLAY
-                 ======================================================= -->
+    <!-- =====================================================
+         VIEW 4: GAMEPLAY
+         ===================================================== -->
 
     <section id="gameplay-view" class="app-view gameplay-view" aria-labelledby="gameplay-title" hidden>
       <header class="gameplay-header">
@@ -255,7 +254,9 @@
           </button>
 
           <div>
-            <p class="eyebrow">Now playing</p>
+            <p class="eyebrow">
+              Now playing
+            </p>
 
             <h2 id="gameplay-title">
               Camera Rhythm Game
@@ -269,6 +270,7 @@
 
         <div class="gameplay-controls">
           <div class="controls">
+
             <div class="control-group">
               <span class="control-group__label">
                 Left foot
@@ -288,6 +290,7 @@
               <span>/</span>
               <kbd>→</kbd>
             </div>
+
           </div>
 
           <div class="game-buttons">
@@ -322,13 +325,15 @@
       </footer>
     </section>
 
-    <!-- =======================================================
-                 VIEW 5: RESULTS
-                 ======================================================= -->
+    <!-- =====================================================
+         VIEW 5: RESULTS
+         ===================================================== -->
 
     <section id="results-view" class="app-view results-view" aria-labelledby="results-title" hidden>
       <div class="results-card">
-        <p class="eyebrow">Song complete</p>
+        <p class="eyebrow">
+          Song complete
+        </p>
 
         <h2 id="results-title">
           Results
@@ -336,12 +341,14 @@
 
         <div class="results-score">
           <span>Score</span>
+
           <strong id="results-score-value">
             0
           </strong>
         </div>
 
         <dl class="results-breakdown">
+
           <div>
             <dt>Perfect</dt>
             <dd id="results-perfect-count">0</dd>
@@ -366,6 +373,7 @@
             <dt>Max combo</dt>
             <dd id="results-max-combo">0</dd>
           </div>
+
         </dl>
 
         <div class="results-actions">
@@ -379,6 +387,7 @@
         </div>
       </div>
     </section>
+
   </main>
 
   <script type="module" src="/src/main.ts"></script>
