@@ -104,8 +104,15 @@ export class CanvasRenderer {
             this.cssHeight,
         );
 
-        gradient.addColorStop(0, "#121a2c");
-        gradient.addColorStop(1, "#080c16");
+        gradient.addColorStop(
+            0,
+            "rgba(18,26,44,0.55)",
+        );
+
+        gradient.addColorStop(
+            1,
+            "rgba(8,12,22,0.55)",
+        );
 
         this.context.fillStyle = gradient;
         this.context.fillRect(

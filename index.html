@@ -309,8 +309,61 @@
         </div>
       </header>
 
+      <details class="camera-setup-panel">
+        <summary>Camera setup</summary>
+
+        <div class="camera-setup-panel__content">
+          <div class="camera-controls-grid">
+            <label class="camera-control">
+              <span>Input mode</span>
+              <select id="input-mode-select">
+                <option value="keyboard">Keyboard</option>
+                <option value="camera">Camera</option>
+              </select>
+            </label>
+
+            <label class="camera-control">
+              <span>Camera</span>
+              <select id="camera-device-select" disabled>
+                <option value="">Enable camera to list devices</option>
+              </select>
+            </label>
+
+            <label class="camera-control camera-control--checkbox">
+              <input id="camera-mirror-toggle" type="checkbox" checked />
+              <span>Mirror preview</span>
+            </label>
+          </div>
+
+          <div class="camera-actions">
+            <button id="camera-enable-button" type="button" class="primary-button">
+              Enable camera
+            </button>
+
+            <button id="camera-disable-button" type="button" class="secondary-button" disabled>
+              Disable camera
+            </button>
+          </div>
+
+          <p id="camera-status" class="camera-status" aria-live="polite">
+            Camera is off. Keyboard input is active.
+          </p>
+
+          <p class="camera-note">
+            Milestone 1 provides camera access and input switching only. Camera mode intentionally reports both feet as
+            invisible until pose tracking is added.
+          </p>
+        </div>
+      </details>
+
       <div class="game-container">
-        <canvas id="game-canvas" aria-label="Four-lane rhythm game playfield"></canvas>
+
+        <div class="camera-preview-shell">
+          <video id="camera-preview" class="camera-preview" autoplay muted playsinline></video>
+        </div>
+
+        <canvas id="game-canvas" aria-label="Rhythm game playfield"></canvas>
+
       </div>
 
       <footer class="gameplay-footer">

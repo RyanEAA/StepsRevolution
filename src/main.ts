@@ -5,6 +5,9 @@ import { AudioClock } from "./audio/AudioClock";
 import { Game } from "./game/Game";
 import { FolderImporter } from "./library/FolderImporter";
 import { LibraryBuilder } from "./library/LibraryBuilder";
+import { CameraFootInput } from "./camera/CameraFootInput";
+import { CameraManager } from "./camera/CameraManager";
+import { InputManager, type InputMode } from "./input/InputManager";
 import { KeyboardInput } from "./input/KeyboardInput";
 import { CanvasRenderer } from "./rendering/CanvasRenderer";
 import { RuntimeChartBuilder } from "./stepmania/RuntimeChartBuilder";
@@ -154,6 +157,41 @@ const restartButton =
     "#restart-button",
   );
 
+const inputModeSelect =
+  requireElement<HTMLSelectElement>(
+    "#input-mode-select",
+  );
+
+const cameraDeviceSelect =
+  requireElement<HTMLSelectElement>(
+    "#camera-device-select",
+  );
+
+const cameraMirrorToggle =
+  requireElement<HTMLInputElement>(
+    "#camera-mirror-toggle",
+  );
+
+const cameraEnableButton =
+  requireElement<HTMLButtonElement>(
+    "#camera-enable-button",
+  );
+
+const cameraDisableButton =
+  requireElement<HTMLButtonElement>(
+    "#camera-disable-button",
+  );
+
+const cameraStatus =
+  requireElement<HTMLElement>(
+    "#camera-status",
+  );
+
+const cameraPreview =
+  requireElement<HTMLVideoElement>(
+    "#camera-preview",
+  );
+
 /* =========================================================
    RESULTS
    ========================================================= */
@@ -249,7 +287,13 @@ const viewManager = new ViewManager({
     ========================================================= */
 const songPreviewPlayer = new SongPreviewPlayer();
 
-const input = new KeyboardInput();
+const keyboardInput = new KeyboardInput();
+const cameraManager = new CameraManager(cameraPreview);
+const cameraInput = new CameraFootInput(cameraManager);
+const input = new InputManager(
+  keyboardInput,
+  cameraInput,
+);
 const renderer = new CanvasRenderer(canvas);
 const game = new Game();
 const audioClock = new AudioClock();
@@ -1330,6 +1374,128 @@ function reportAudioError(
 }
 
 /* =========================================================
+   CAMERA SETUP — MILESTONE 1
+   ========================================================= */
+
+function setCameraStatus(
+  message: string,
+  isError = false,
+): void {
+  cameraStatus.textContent = message;
+  cameraStatus.classList.toggle(
+    "camera-status--error",
+    isError,
+  );
+}
+
+function setInputMode(mode: InputMode): void {
+  input.setMode(mode);
+  inputModeSelect.value = mode;
+
+  if (mode === "camera") {
+    setCameraStatus(
+      cameraManager.isRunning()
+        ? "Camera input selected. Pose tracking is not implemented yet."
+        : "Camera input selected, but the camera is not running.",
+    );
+  } else {
+    setCameraStatus(
+      cameraManager.isRunning()
+        ? "Keyboard input selected. Camera preview remains active."
+        : "Keyboard input is active.",
+    );
+  }
+}
+
+async function refreshCameraList(): Promise<void> {
+  const previousSelection =
+    cameraManager.getSelectedDeviceId() ??
+    cameraDeviceSelect.value;
+
+  const cameras = await cameraManager.listCameras();
+  cameraDeviceSelect.replaceChildren();
+
+  if (cameras.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No cameras found";
+    cameraDeviceSelect.append(option);
+    cameraDeviceSelect.disabled = true;
+    return;
+  }
+
+  cameras.forEach((camera, index) => {
+    const option = document.createElement("option");
+    option.value = camera.deviceId;
+    option.textContent =
+      camera.label || `Camera ${index + 1}`;
+    cameraDeviceSelect.append(option);
+  });
+
+  const matchingCamera = cameras.find(
+    (camera) => camera.deviceId === previousSelection,
+  );
+
+  cameraDeviceSelect.value =
+    matchingCamera?.deviceId ?? cameras[0]?.deviceId ?? "";
+  cameraDeviceSelect.disabled = false;
+}
+
+async function startSelectedCamera(): Promise<void> {
+  cameraEnableButton.disabled = true;
+  cameraDeviceSelect.disabled = true;
+
+  try {
+    const selectedDeviceId =
+      cameraDeviceSelect.value || undefined;
+
+    await cameraManager.start(selectedDeviceId);
+    await refreshCameraList();
+
+    const activeDeviceId = cameraManager.getSelectedDeviceId();
+    if (activeDeviceId) {
+      cameraDeviceSelect.value = activeDeviceId;
+    }
+
+    cameraDisableButton.disabled = false;
+    setInputMode("camera");
+  } catch (error) {
+    console.error(error);
+    setInputMode("keyboard");
+  } finally {
+    cameraEnableButton.disabled = false;
+    cameraDeviceSelect.disabled = !cameraManager.isRunning();
+  }
+}
+
+function stopCamera(): void {
+  cameraManager.stop();
+  cameraDisableButton.disabled = true;
+  cameraDeviceSelect.disabled = true;
+
+  if (input.getMode() === "camera") {
+    setInputMode("keyboard");
+  }
+}
+
+const unsubscribeFromCameraStatus =
+  cameraManager.subscribe(
+    (status, message) => {
+      setCameraStatus(
+        message,
+        status === "error",
+      );
+
+      const running = status === "running";
+      cameraDisableButton.disabled = !running;
+
+      if (status === "error") {
+        setInputMode("keyboard");
+      }
+    },
+  );
+
+/* =========================================================
    VIEW NAVIGATION
    ========================================================= */
 
@@ -1378,6 +1544,7 @@ function cleanUp(): void {
     animationFrameId,
   );
 
+  unsubscribeFromCameraStatus();
   input.destroy();
   audioClock.destroy();
 
@@ -1605,10 +1772,66 @@ navLibraryButton.addEventListener(
   },
 );
 
+inputModeSelect.addEventListener(
+  "change",
+  () => {
+    const requestedMode =
+      inputModeSelect.value as InputMode;
+
+    if (
+      requestedMode === "camera" &&
+      !cameraManager.isRunning()
+    ) {
+      setInputMode("keyboard");
+      setCameraStatus(
+        "Enable the camera before selecting camera input.",
+        true,
+      );
+      return;
+    }
+
+    setInputMode(requestedMode);
+  },
+);
+
+cameraEnableButton.addEventListener(
+  "click",
+  () => {
+    void startSelectedCamera();
+  },
+);
+
+cameraDisableButton.addEventListener(
+  "click",
+  stopCamera,
+);
+
+cameraDeviceSelect.addEventListener(
+  "change",
+  () => {
+    if (cameraManager.isRunning()) {
+      void startSelectedCamera();
+    }
+  },
+);
+
+cameraMirrorToggle.addEventListener(
+  "change",
+  () => {
+    cameraManager.setMirrored(
+      cameraMirrorToggle.checked,
+    );
+  },
+);
+
 /* =========================================================
    INITIALIZATION
    ========================================================= */
 
+cameraManager.setMirrored(
+  cameraMirrorToggle.checked,
+);
+setInputMode("keyboard");
 updateButtonState();
 
 viewManager.show(
