@@ -193,6 +193,151 @@ const cameraPreview =
   );
 
 /* =========================================================
+    POSE TRACKING
+    ========================================================= */
+const poseOverlayCanvas =
+  requireElement<HTMLCanvasElement>(
+    "#pose-overlay-canvas",
+  );
+
+const cameraVisibilityThreshold =
+  requireElement<HTMLInputElement>(
+    "#camera-visibility-threshold",
+  );
+
+const cameraVisibilityThresholdValue =
+  requireElement<HTMLOutputElement>(
+    "#camera-visibility-threshold-value",
+  );
+
+const cameraInferenceFps =
+  requireElement<HTMLInputElement>(
+    "#camera-inference-fps",
+  );
+
+const cameraInferenceFpsValue =
+  requireElement<HTMLOutputElement>(
+    "#camera-inference-fps-value",
+  );
+
+const cameraLeftRawPosition =
+  requireElement<HTMLElement>(
+    "#camera-left-raw-position",
+  );
+
+const cameraRightRawPosition =
+  requireElement<HTMLElement>(
+    "#camera-right-raw-position",
+  );
+
+const cameraLeftDisplayPosition =
+  requireElement<HTMLElement>(
+    "#camera-left-display-position",
+  );
+
+const cameraRightDisplayPosition =
+  requireElement<HTMLElement>(
+    "#camera-right-display-position",
+  );
+
+const cameraLeftConfidence =
+  requireElement<HTMLElement>(
+    "#camera-left-confidence",
+  );
+
+const cameraRightConfidence =
+  requireElement<HTMLElement>(
+    "#camera-right-confidence",
+  );
+
+const cameraLeftVisible =
+  requireElement<HTMLElement>(
+    "#camera-left-visible",
+  );
+
+const cameraRightVisible =
+  requireElement<HTMLElement>(
+    "#camera-right-visible",
+  );
+
+function updateCameraTrackingDebug(): void {
+  const debug =
+    cameraInput.getDebugState();
+
+  cameraLeftRawPosition.textContent =
+    debug.leftVisible
+      ? debug.leftSourceX.toFixed(3)
+      : "—";
+
+  cameraRightRawPosition.textContent =
+    debug.rightVisible
+      ? debug.rightSourceX.toFixed(3)
+      : "—";
+
+  cameraLeftDisplayPosition.textContent =
+    debug.leftVisible
+      ? debug.leftDisplayX.toFixed(3)
+      : "—";
+
+  cameraRightDisplayPosition.textContent =
+    debug.rightVisible
+      ? debug.rightDisplayX.toFixed(3)
+      : "—";
+
+  cameraLeftConfidence.textContent =
+    debug.leftConfidence.toFixed(2);
+
+  cameraRightConfidence.textContent =
+    debug.rightConfidence.toFixed(2);
+
+  cameraLeftVisible.textContent =
+    debug.leftVisible
+      ? "Yes"
+      : "No";
+
+  cameraRightVisible.textContent =
+    debug.rightVisible
+      ? "Yes"
+      : "No";
+}
+
+cameraVisibilityThreshold.addEventListener(
+  "input",
+  () => {
+    const threshold =
+      Number.parseFloat(
+        cameraVisibilityThreshold.value,
+      );
+
+    cameraInput.setVisibilityThreshold(
+      threshold,
+    );
+
+    cameraVisibilityThresholdValue.value =
+      threshold.toFixed(2);
+  },
+);
+
+cameraInferenceFps.addEventListener(
+  "input",
+  () => {
+    const framesPerSecond =
+      Number.parseInt(
+        cameraInferenceFps.value,
+        10,
+      );
+
+    cameraInput
+      .setInferenceFramesPerSecond(
+        framesPerSecond,
+      );
+
+    cameraInferenceFpsValue.value =
+      framesPerSecond.toString();
+  },
+);
+
+/* =========================================================
    RESULTS
    ========================================================= */
 
@@ -289,8 +434,10 @@ const songPreviewPlayer = new SongPreviewPlayer();
 
 const keyboardInput = new KeyboardInput();
 const cameraManager = new CameraManager(cameraPreview);
-const cameraInput = new CameraFootInput(cameraManager);
-const input = new InputManager(
+const cameraInput = new CameraFootInput(
+  cameraManager,
+  poseOverlayCanvas,
+); const input = new InputManager(
   keyboardInput,
   cameraInput,
 );
@@ -661,6 +808,8 @@ function gameLoop(
 
   const footState =
     input.getFootState();
+
+  updateCameraTrackingDebug();
 
   const statusBeforeUpdate =
     game.getState().status;
@@ -1395,7 +1544,7 @@ function setInputMode(mode: InputMode): void {
   if (mode === "camera") {
     setCameraStatus(
       cameraManager.isRunning()
-        ? "Camera input selected. Pose tracking is not implemented yet."
+        ? "Camera pose tracking is active."
         : "Camera input selected, but the camera is not running.",
     );
   } else {
@@ -1450,6 +1599,7 @@ async function startSelectedCamera(): Promise<void> {
       cameraDeviceSelect.value || undefined;
 
     await cameraManager.start(selectedDeviceId);
+    await cameraInput.initialize();
     await refreshCameraList();
 
     const activeDeviceId = cameraManager.getSelectedDeviceId();
@@ -1488,6 +1638,20 @@ const unsubscribeFromCameraStatus =
 
       const running = status === "running";
       cameraDisableButton.disabled = !running;
+
+      if (status === "error") {
+        setInputMode("keyboard");
+      }
+    },
+  );
+
+const unsubscribeFromPoseTrackerStatus =
+  cameraInput.subscribeToTrackerStatus(
+    (status, message) => {
+      setCameraStatus(
+        message,
+        status === "error",
+      );
 
       if (status === "error") {
         setInputMode("keyboard");
@@ -1545,6 +1709,7 @@ function cleanUp(): void {
   );
 
   unsubscribeFromCameraStatus();
+  unsubscribeFromPoseTrackerStatus();
   input.destroy();
   audioClock.destroy();
 
@@ -1818,9 +1983,11 @@ cameraDeviceSelect.addEventListener(
 cameraMirrorToggle.addEventListener(
   "change",
   () => {
-    cameraManager.setMirrored(
-      cameraMirrorToggle.checked,
-    );
+    const mirrored =
+      cameraMirrorToggle.checked;
+
+    cameraManager.setMirrored(mirrored);
+    cameraInput.setMirrored(mirrored);
   },
 );
 
@@ -1828,9 +1995,41 @@ cameraMirrorToggle.addEventListener(
    INITIALIZATION
    ========================================================= */
 
+const initialMirror =
+  cameraMirrorToggle.checked;
+
+const initialVisibilityThreshold =
+  Number.parseFloat(
+    cameraVisibilityThreshold.value,
+  );
+
+const initialInferenceFramesPerSecond =
+  Number.parseInt(
+    cameraInferenceFps.value,
+    10,
+  );
+
 cameraManager.setMirrored(
-  cameraMirrorToggle.checked,
+  initialMirror,
 );
+
+cameraInput.setMirrored(
+  initialMirror,
+);
+
+cameraInput.setVisibilityThreshold(
+  initialVisibilityThreshold,
+);
+
+cameraInput.setInferenceFramesPerSecond(
+  initialInferenceFramesPerSecond,
+);
+
+cameraVisibilityThresholdValue.value =
+  initialVisibilityThreshold.toFixed(2);
+
+cameraInferenceFpsValue.value =
+  initialInferenceFramesPerSecond.toString();
 setInputMode("keyboard");
 updateButtonState();
 
@@ -1840,3 +2039,5 @@ viewManager.show(
 
 animationFrameId =
   requestAnimationFrame(gameLoop);
+
+

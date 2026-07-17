@@ -1,3 +1,5 @@
+import type { ImageClassifier } from "@mediapipe/tasks-vision";
+
 export type CameraStatus =
     | "idle"
     | "starting"
@@ -18,6 +20,7 @@ export class CameraManager {
     private stream: MediaStream | null = null;
     private selectedDeviceId: string | null = null;
     private destroyed = false;
+    private mirrored = true;
 
     constructor(videoElement: HTMLVideoElement) {
         this.videoElement = videoElement;
@@ -139,7 +142,16 @@ export class CameraManager {
         return this.selectedDeviceId;
     }
 
+    public getVideoElement(): HTMLVideoElement {
+        return this.videoElement;
+    }
+
+    public isMirrored(): boolean {
+        return this.mirrored;
+    }
+
     public setMirrored(mirrored: boolean): void {
+        this.mirrored = mirrored;
         this.videoElement.classList.toggle(
             "camera-preview--mirrored",
             mirrored,

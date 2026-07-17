@@ -314,6 +314,7 @@
 
         <div class="camera-setup-panel__content">
           <div class="camera-controls-grid">
+
             <label class="camera-control">
               <span>Input mode</span>
               <select id="input-mode-select">
@@ -333,6 +334,31 @@
               <input id="camera-mirror-toggle" type="checkbox" checked />
               <span>Mirror preview</span>
             </label>
+
+            <label class="camera-control">
+              <span>Visibility threshold</span>
+
+              <div class="camera-range-control">
+                <input id="camera-visibility-threshold" type="range" min="0" max="1" step="0.05" value="0.5" />
+
+                <output id="camera-visibility-threshold-value" for="camera-visibility-threshold">
+                  0.50
+                </output>
+              </div>
+            </label>
+
+            <label class="camera-control">
+              <span>Inference FPS</span>
+
+              <div class="camera-range-control">
+                <input id="camera-inference-fps" type="range" min="5" max="30" step="1" value="15" />
+
+                <output id="camera-inference-fps-value" for="camera-inference-fps">
+                  15
+                </output>
+              </div>
+            </label>
+
           </div>
 
           <div class="camera-actions">
@@ -349,9 +375,51 @@
             Camera is off. Keyboard input is active.
           </p>
 
+          <div class="camera-tracking-debug">
+            <div>
+              <span>Left raw</span>
+              <strong id="camera-left-raw-position">—</strong>
+            </div>
+
+            <div>
+              <span>Right raw</span>
+              <strong id="camera-right-raw-position">—</strong>
+            </div>
+
+            <div>
+              <span>Left game X</span>
+              <strong id="camera-left-display-position">—</strong>
+            </div>
+
+            <div>
+              <span>Right game X</span>
+              <strong id="camera-right-display-position">—</strong>
+            </div>
+
+            <div>
+              <span>Left confidence</span>
+              <strong id="camera-left-confidence">—</strong>
+            </div>
+
+            <div>
+              <span>Right confidence</span>
+              <strong id="camera-right-confidence">—</strong>
+            </div>
+
+            <div>
+              <span>Left visible</span>
+              <strong id="camera-left-visible">No</strong>
+            </div>
+
+            <div>
+              <span>Right visible</span>
+              <strong id="camera-right-visible">No</strong>
+            </div>
+          </div>
+
           <p class="camera-note">
-            Milestone 1 provides camera access and input switching only. Camera mode intentionally reports both feet as
-            invisible until pose tracking is added.
+            Raw pose positions are not calibrated or smoothed yet.
+            Keep both ankles, heels, and toes visible in the frame.
           </p>
         </div>
       </details>
@@ -360,6 +428,8 @@
 
         <div class="camera-preview-shell">
           <video id="camera-preview" class="camera-preview" autoplay muted playsinline></video>
+
+          <canvas id="pose-overlay-canvas" class="pose-overlay-canvas" aria-hidden="true"></canvas>
         </div>
 
         <canvas id="game-canvas" aria-label="Rhythm game playfield"></canvas>
