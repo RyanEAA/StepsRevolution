@@ -2,6 +2,10 @@ import type {
     PoseLandmarkerResult,
 } from "@mediapipe/tasks-vision";
 
+import {
+    CameraCoordinateMapper,
+} from "./CameraCoordinatorMapper";
+
 const LEFT_ANKLE = 27;
 const RIGHT_ANKLE = 28;
 const LEFT_HEEL = 29;
@@ -36,15 +40,24 @@ export interface EstimatedFeet {
     right: EstimatedFoot;
 }
 
-interface WeightedPosition {
-    x: number;
+interface EstimatedPosition {
+    sourceX: number;
+    displayX: number;
     confidence: number;
     visible: boolean;
 }
 
+
 export class FootPositionEstimator {
     private visibilityThreshold = 0.5;
-    private mirrored = true;
+    private readonly coordinateMapper:
+        CameraCoordinateMapper;
+
+    constructor(
+        coordinateMapper: CameraCoordinateMapper,
+    ) {
+        this.coordinateMapper = coordinateMapper;
+    }
 
     public setVisibilityThreshold(
         threshold: number,
@@ -58,10 +71,6 @@ export class FootPositionEstimator {
 
     public getVisibilityThreshold(): number {
         return this.visibilityThreshold;
-    }
-
-    public setMirrored(mirrored: boolean): void {
-        this.mirrored = mirrored;
     }
 
     public estimate(
@@ -93,9 +102,10 @@ export class FootPositionEstimator {
     private estimatePosition(
         landmarks: PoseLandmarks,
         indices: readonly number[],
-    ): WeightedPosition {
-        let weightedXTotal = 0;
-        let totalWeight = 0;
+    ): EstimatedPosition {
+        let displayXTotal = 0;
+        let sourceXTotal = 0;
+
         let confidenceTotal = 0;
         let acceptedLandmarkCount = 0;
 
@@ -116,57 +126,51 @@ export class FootPositionEstimator {
                 continue;
             }
 
-            const weight = Math.max(
-                confidence,
-                0.001,
-            );
+            const displayX =
+                this.coordinateMapper
+                    .mapXToDisplay(
+                        landmark.x,
+                    );
 
-            weightedXTotal +=
-                landmark.x * weight;
+            sourceXTotal += landmark.x;
+            displayXTotal += displayX;
 
-            totalWeight += weight;
             confidenceTotal += confidence;
             acceptedLandmarkCount += 1;
         }
 
-        if (
-            acceptedLandmarkCount === 0 ||
-            totalWeight === 0
-        ) {
+        if (acceptedLandmarkCount === 0) {
             return {
-                x: 0.5,
+                sourceX: 0.5,
+                displayX: 0.5,
                 confidence: 0,
                 visible: false,
             };
         }
 
         return {
-            x: this.clamp(
-                weightedXTotal / totalWeight,
-                0,
-                1,
-            ),
+            sourceX:
+                sourceXTotal /
+                acceptedLandmarkCount,
+
+            displayX:
+                displayXTotal /
+                acceptedLandmarkCount,
+
             confidence:
                 confidenceTotal /
                 acceptedLandmarkCount,
+
             visible: true,
         };
     }
 
     private toEstimatedFoot(
-        position: WeightedPosition,
+        position: EstimatedPosition,
     ): EstimatedFoot {
-        const displayX = this.mirrored
-            ? 1 - position.x
-            : position.x;
-
         return {
-            sourceX: position.x,
-            displayX: this.clamp(
-                displayX,
-                0,
-                1,
-            ),
+            sourceX: position.sourceX,
+            displayX: position.displayX,
             confidence: position.confidence,
             visible: position.visible,
         };

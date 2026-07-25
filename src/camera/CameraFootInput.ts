@@ -24,6 +24,10 @@ import {
     type PoseTrackerStatusListener,
 } from "./PoseTracker";
 
+import {
+    CameraCoordinateMapper,
+} from "./CameraCoordinatorMapper";
+
 export interface CameraFootDebugState {
     leftSourceX: number;
     rightSourceX: number;
@@ -42,11 +46,14 @@ export class CameraFootInput implements InputSource {
     private readonly cameraManager: CameraManager;
     private readonly poseTracker: PoseTracker;
 
-    private readonly estimator =
-        new FootPositionEstimator();
-
     private readonly overlayRenderer:
         PoseOverlayRenderer;
+
+    private readonly coordinateMapper:
+        CameraCoordinateMapper;
+
+    private readonly estimator:
+        FootPositionEstimator;
 
     private footState: FootState = {
         leftX: 0.375,
@@ -75,6 +82,28 @@ export class CameraFootInput implements InputSource {
 
         const videoElement =
             cameraManager.getVideoElement();
+
+        const previewShell =
+            videoElement.closest<HTMLElement>(
+                ".camera-preview-shell",
+            );
+
+        if (!previewShell) {
+            throw new Error(
+                "Camera preview shell was not found.",
+            );
+        }
+
+        this.coordinateMapper =
+            new CameraCoordinateMapper(
+                videoElement,
+                previewShell,
+            );
+
+        this.estimator =
+            new FootPositionEstimator(
+                this.coordinateMapper,
+            );
 
         this.poseTracker =
             new PoseTracker(videoElement);
@@ -166,7 +195,9 @@ export class CameraFootInput implements InputSource {
     public setMirrored(
         mirrored: boolean,
     ): void {
-        this.estimator.setMirrored(mirrored);
+        this.coordinateMapper.setMirrored(
+            mirrored,
+        );
         this.overlayRenderer.setMirrored(
             mirrored,
         );
