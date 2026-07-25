@@ -1,0 +1,83 @@
+/* =========================================================
+   RESULTS
+   ========================================================= */
+
+.results-view {
+    display: grid;
+    place-items: center;
+
+    min-height: 70vh;
+}
+
+.results-card {
+    width: min(560px, 100%);
+}
+
+.results-card h2 {
+    margin: 0;
+}
+
+.results-score {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    margin-top: 24px;
+    padding-bottom: 18px;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.results-score span {
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.results-score strong {
+    font-size: clamp(2.25rem, 8vw, 4.5rem);
+    line-height: 0.9;
+}
+
+.results-breakdown {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 10px;
+
+    margin: 20px 0 0;
+}
+
+.results-breakdown div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    padding: 12px 14px;
+
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+}
+
+.results-breakdown dt {
+    color: var(--text-secondary);
+}
+
+.results-breakdown dd {
+    margin: 0;
+
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.results-actions {
+    display: flex;
+    gap: 10px;
+
+    margin-top: 22px;
+}
+
+.results-actions button {
+    flex: 1;
+}

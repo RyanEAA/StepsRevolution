@@ -1,0 +1,483 @@
+/* =========================================================
+   LIBRARY IMPORT
+   ========================================================= */
+
+.library-import-panel,
+.library-section,
+.developer-panel,
+.results-card {
+    padding: 20px;
+
+    background: var(--panel-background);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+}
+
+.library-import-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+}
+
+.library-import-panel__content h3 {
+    margin: 0;
+}
+
+.library-import-panel__content p {
+    margin: 8px 0 0;
+
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.folder-example {
+    max-width: 100%;
+    margin: 14px 0 0;
+    padding: 14px;
+    overflow-x: auto;
+
+    color: rgba(255, 255, 255, 0.72);
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.folder-import-button {
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 44px;
+    padding: 10px 17px;
+
+    color: #ffffff;
+    background: rgba(116, 145, 255, 0.2);
+    border: 1px solid rgba(145, 169, 255, 0.42);
+    border-radius: 9px;
+
+    font-weight: 800;
+    cursor: pointer;
+
+    transition:
+        background 120ms ease,
+        border-color 120ms ease,
+        transform 120ms ease;
+}
+
+.folder-import-button:hover {
+    background: rgba(116, 145, 255, 0.34);
+    border-color: rgba(170, 190, 255, 0.68);
+    transform: translateY(-1px);
+}
+
+.folder-import-button input {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.import-status,
+#library-import-status {
+    grid-column: 1 / -1;
+
+    margin: 0;
+
+    color: var(--text-secondary);
+
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+}
+
+/* =========================================================
+   DEVELOPER PANEL
+   ========================================================= */
+
+.developer-panel {
+    margin-top: 18px;
+}
+
+.developer-panel summary {
+    color: rgba(255, 255, 255, 0.68);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.developer-panel__content {
+    display: grid;
+    gap: 14px;
+
+    margin-top: 16px;
+}
+
+.file-control {
+    display: grid;
+    grid-template-columns: 150px minmax(180px, 1fr) minmax(180px, 1fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.file-control label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.file-control input,
+.file-control select {
+    min-width: 0;
+    padding: 8px 10px;
+
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 7px;
+}
+
+.file-control select option {
+    color: #111827;
+}
+
+.control-status {
+    min-width: 0;
+    overflow: hidden;
+
+    color: var(--text-muted);
+    font-size: 0.78rem;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* =========================================================
+   LIBRARY VIEW
+   ========================================================= */
+
+.library-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    margin-bottom: 18px;
+}
+
+/*
+ * align-items: start is important.
+ *
+ * CSS Grid normally stretches every card in a row to match the
+ * tallest card. When one song expands, that would otherwise make
+ * every neighboring song card appear expanded.
+ */
+.library-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fill, minmax(210px, 1fr));
+    align-items: start;
+    gap: 15px;
+}
+
+.pack-grid {
+    align-items: start;
+}
+
+.song-grid {
+    grid-template-columns:
+        repeat(auto-fill, minmax(230px, 1fr));
+
+    align-items: start;
+    grid-auto-flow: dense;
+}
+
+/* =========================================================
+   PACK AND SONG CARDS
+   ========================================================= */
+
+.library-card {
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+
+    color: inherit;
+    text-align: left;
+
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-medium);
+
+    transition:
+        transform 130ms ease,
+        border-color 130ms ease,
+        background 130ms ease;
+}
+
+.pack-card {
+    display: flex;
+    align-self: start;
+    flex-direction: column;
+
+    height: auto;
+
+    cursor: pointer;
+}
+
+.pack-card:hover {
+    transform: translateY(-3px);
+
+    background: var(--panel-background-hover);
+    border-color: rgba(145, 169, 255, 0.5);
+}
+
+.song-card {
+    display: block;
+    align-self: start;
+
+    width: 100%;
+    height: auto;
+
+    cursor: default;
+}
+
+.song-card:hover {
+    background: var(--panel-background-hover);
+    border-color: rgba(145, 169, 255, 0.42);
+}
+
+.library-card--unavailable {
+    opacity: 0.72;
+}
+
+.library-card__artwork {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    overflow: hidden;
+
+    background:
+        radial-gradient(circle at top left,
+            rgba(95, 127, 230, 0.38),
+            transparent 60%),
+        rgba(17, 25, 48, 0.9);
+
+    color: rgba(255, 255, 255, 0.85);
+
+    font-size: 3rem;
+    font-weight: 900;
+}
+
+.library-card__artwork img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.library-card__content {
+    min-width: 0;
+    padding: 13px 14px 15px;
+}
+
+.library-card__content h3 {
+    margin: 0;
+    overflow: hidden;
+
+    font-size: 1rem;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.library-card__content p {
+    margin: 6px 0 0;
+    overflow: hidden;
+
+    color: rgba(255, 255, 255, 0.56);
+    font-size: 0.82rem;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.library-card__details {
+    display: block;
+
+    margin-top: 9px;
+
+    color: rgba(151, 174, 255, 0.85);
+
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+/* =========================================================
+   EXPANDABLE SONG CARD
+   ========================================================= */
+
+.song-card__summary {
+    display: flex;
+    align-self: start;
+    flex-direction: column;
+
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    padding: 0;
+
+    color: inherit;
+    text-align: left;
+
+    background: transparent;
+    border: 0;
+
+    cursor: pointer;
+}
+
+.song-card__summary:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.song-card--expanded {
+    grid-column: span 2;
+    align-self: start;
+
+    height: auto;
+
+    border-color: rgba(145, 169, 255, 0.7);
+
+    background:
+        linear-gradient(135deg,
+            rgba(91, 119, 218, 0.16),
+            rgba(255, 255, 255, 0.05));
+}
+
+.song-card--expanded .library-card__artwork {
+    aspect-ratio: 3 / 1;
+}
+
+.song-card__expanded-content {
+    padding: 4px 16px 18px;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.song-card__expanded-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    min-height: 42px;
+}
+
+.song-card__preview-status {
+    color: rgba(133, 231, 255, 0.9);
+
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.library-card--unavailable .song-card__preview-status {
+    color: rgba(255, 132, 147, 0.85);
+}
+
+.song-card__expanded-content h4 {
+    margin: 9px 0 10px;
+
+    color: rgba(255, 255, 255, 0.72);
+
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* =========================================================
+   DIFFICULTY BUTTONS
+   ========================================================= */
+
+.song-card__difficulty-list {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(115px, 1fr));
+    gap: 8px;
+}
+
+.difficulty-button {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 10px;
+
+    min-width: 0;
+    padding: 10px;
+
+    color: rgba(255, 255, 255, 0.8);
+    text-align: left;
+
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    transition:
+        background 120ms ease,
+        border-color 120ms ease,
+        transform 120ms ease;
+}
+
+.difficulty-button:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(145, 169, 255, 0.48);
+    transform: translateY(-1px);
+}
+
+.difficulty-button--selected {
+    background: rgba(116, 145, 255, 0.22);
+    border-color: rgba(145, 169, 255, 0.75);
+}
+
+.difficulty-button__name {
+    overflow: hidden;
+
+    font-size: 0.8rem;
+    font-weight: 800;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.difficulty-button__meter {
+    grid-row: span 2;
+
+    color: #ffffff;
+
+    font-size: 1.35rem;
+}
+
+.difficulty-button small {
+    overflow: hidden;
+
+    color: rgba(255, 255, 255, 0.46);
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.song-card__play-button {
+    width: 100%;
+    margin-top: 14px;
+}

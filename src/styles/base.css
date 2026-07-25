@@ -1,0 +1,51 @@
+/* =========================================================
+   RESET
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-width: 320px;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
+
+    color: var(--text-primary);
+
+    background:
+        radial-gradient(circle at top left,
+            rgba(64, 96, 190, 0.24),
+            transparent 38rem),
+        radial-gradient(circle at top right,
+            rgba(184, 67, 164, 0.18),
+            transparent 34rem),
+        var(--page-background);
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+button {
+    color: inherit;
+}
+
+img {
+    display: block;
+    max-width: 100%;
+}
+
+[hidden] {
+    display: none !important;
+}

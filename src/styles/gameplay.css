@@ -1,0 +1,151 @@
+/* =========================================================
+   GAMEPLAY VIEW
+   ========================================================= */
+
+.gameplay-view {
+    min-width: 0;
+}
+
+.gameplay-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+
+    margin-bottom: 18px;
+}
+
+.gameplay-song-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.gameplay-song-info h2 {
+    margin: 0;
+}
+
+#gameplay-song-artist {
+    margin: 6px 0 0;
+
+    color: var(--text-secondary);
+}
+
+.playfield-size-control {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    color: var(--text-secondary);
+
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.playfield-size-control select {
+    min-width: 110px;
+    padding: 7px 9px;
+
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-small);
+}
+
+.playfield-size-control select option {
+    color: #111827;
+}
+
+.gameplay-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.game-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.game-buttons button {
+    min-width: 84px;
+
+    color: #ffffff;
+    background: var(--accent-background);
+    border: 1px solid rgba(145, 169, 255, 0.38);
+}
+
+.game-buttons button:hover:not(:disabled) {
+    background: var(--accent-background-hover);
+    border-color: rgba(170, 190, 255, 0.7);
+    transform: translateY(-1px);
+}
+
+.game-buttons button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.game-container {
+    position: relative;
+
+    width: 100%;
+    max-width: var(--playfield-max-width, 100%);
+    height: var(--playfield-height, 620px);
+    margin-inline: auto;
+    overflow: hidden;
+
+    background: rgba(7, 11, 22, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-large);
+
+    box-shadow:
+        0 28px 80px rgba(0, 0, 0, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    transition:
+        max-width 180ms ease,
+        height 180ms ease;
+}
+
+.game-container--compact {
+    --playfield-max-width: 760px;
+    --playfield-height: 480px;
+}
+
+.game-container--medium {
+    --playfield-max-width: 960px;
+    --playfield-height: 540px;
+}
+
+.game-container--large {
+    --playfield-max-width: 100%;
+    --playfield-height: 620px;
+}
+
+#game-canvas {
+    position: relative;
+    z-index: 10;
+
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    touch-action: none;
+}
+
+.gameplay-footer {
+    margin-top: 14px;
+
+    color: var(--text-muted);
+
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.gameplay-footer p {
+    margin: 0;
+}

@@ -22,7 +22,13 @@ import type {
   SongLibrary,
   SongPack,
 } from "./types/Library";
+
 import { LibraryView } from "./ui/LibraryView";
+
+import {
+  PLAYFIELD_SIZE_STORAGE_KEY,
+  type PlayfieldSize,
+} from "./types/PlayfieldSize";
 
 /* =========================================================
    DOM HELPERS
@@ -41,6 +47,8 @@ function requireElement<T extends Element>(
 
   return element;
 }
+
+
 
 /* =========================================================
    MAIN VIEWS
@@ -190,6 +198,16 @@ const cameraStatus =
 const cameraPreview =
   requireElement<HTMLVideoElement>(
     "#camera-preview",
+  );
+
+const gameContainer =
+  requireElement<HTMLElement>(
+    ".game-container",
+  );
+
+const playfieldSizeSelect =
+  requireElement<HTMLSelectElement>(
+    "#playfield-size-select",
   );
 
 /* =========================================================
@@ -1202,6 +1220,11 @@ async function handleLibraryFolderSelection(): Promise<void> {
       newLibrary,
     );
 
+    setPlayfieldSize(
+      loadPlayfieldSize(),
+      false,
+    );
+
     viewManager.show(
       "pack-selection",
     );
@@ -1991,6 +2014,22 @@ cameraMirrorToggle.addEventListener(
   },
 );
 
+playfieldSizeSelect.addEventListener(
+  "change",
+  () => {
+    const selectedSize =
+      playfieldSizeSelect.value;
+
+    if (!isPlayfieldSize(selectedSize)) {
+      return;
+    }
+
+    setPlayfieldSize(
+      selectedSize,
+    );
+  },
+);
+
 /* =========================================================
    INITIALIZATION
    ========================================================= */
@@ -2041,3 +2080,61 @@ animationFrameId =
   requestAnimationFrame(gameLoop);
 
 
+// Playing Field Size
+function isPlayfieldSize(
+  value: string,
+): value is PlayfieldSize {
+  return (
+    value === "compact" ||
+    value === "medium" ||
+    value === "large"
+  );
+}
+
+function setPlayfieldSize(
+  size: PlayfieldSize,
+  persist = true,
+): void {
+  gameContainer.classList.remove(
+    "game-container--compact",
+    "game-container--medium",
+    "game-container--large",
+  );
+
+  gameContainer.classList.add(
+    `game-container--${size}`,
+  );
+
+  playfieldSizeSelect.value = size;
+
+  if (persist) {
+    localStorage.setItem(
+      PLAYFIELD_SIZE_STORAGE_KEY,
+      size,
+    );
+  }
+
+  /*
+   * Wait until the browser has applied the new CSS dimensions
+   * before resizing the canvas backing buffer.
+   */
+  requestAnimationFrame(() => {
+    renderer.resize();
+  });
+}
+
+function loadPlayfieldSize(): PlayfieldSize {
+  const savedSize =
+    localStorage.getItem(
+      PLAYFIELD_SIZE_STORAGE_KEY,
+    );
+
+  if (
+    savedSize &&
+    isPlayfieldSize(savedSize)
+  ) {
+    return savedSize;
+  }
+
+  return "large";
+}

@@ -1,0 +1,140 @@
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+    .gameplay-header {
+        flex-direction: column;
+    }
+
+    .gameplay-controls {
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .controls,
+    .game-buttons {
+        justify-content: flex-start;
+    }
+
+    .file-control {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 760px) {
+    .app {
+        padding: 14px;
+    }
+
+    .app-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .app-navigation {
+        width: 100%;
+    }
+
+    .navigation-button {
+        flex: 1;
+    }
+
+    .view-heading,
+    .library-section__header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .library-import-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .folder-import-button {
+        width: 100%;
+    }
+
+    .import-status,
+    #library-import-status {
+        grid-column: auto;
+    }
+
+    .library-grid,
+    .song-grid {
+        grid-template-columns:
+            repeat(auto-fill, minmax(160px, 1fr));
+    }
+
+    .song-card--expanded {
+        grid-column: 1 / -1;
+    }
+
+    .song-card__difficulty-list {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .controls {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .control-group {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .game-buttons {
+        width: 100%;
+    }
+
+    .game-buttons button {
+        flex: 1;
+    }
+
+    .gameplay-song-info {
+        flex-direction: column;
+    }
+
+    .game-container--compact,
+    .game-container--medium,
+    .game-container--large {
+        --playfield-max-width: 100%;
+        --playfield-height: 560px;
+    }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+    .control-group__label {
+        display: none;
+    }
+
+    .library-grid,
+    .song-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .song-card--expanded {
+        grid-column: auto;
+    }
+
+    .song-card__difficulty-list {
+        grid-template-columns: 1fr;
+    }
+
+    .results-breakdown {
+        grid-template-columns: 1fr;
+    }
+
+    .results-actions {
+        flex-direction: column;
+    }
+}
