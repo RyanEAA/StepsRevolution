@@ -65,13 +65,7 @@ export class PoseOverlayRenderer {
         result: PoseLandmarkerResult,
     ): void {
         this.resize();
-
-        this.context.clearRect(
-            0,
-            0,
-            this.canvas.width,
-            this.canvas.height,
-        );
+        this.clearCanvas();
 
         const landmarks =
             result.landmarks[0];
@@ -97,6 +91,17 @@ export class PoseOverlayRenderer {
 
     public clear(): void {
         this.resize();
+        this.clearCanvas();
+    }
+
+    private clearCanvas(): void {
+        /*
+         * resetTransform() makes clearing independent of the
+         * device-pixel-ratio transform used for drawing.
+         */
+        this.context.save();
+
+        this.context.resetTransform();
 
         this.context.clearRect(
             0,
@@ -104,6 +109,8 @@ export class PoseOverlayRenderer {
             this.canvas.width,
             this.canvas.height,
         );
+
+        this.context.restore();
     }
 
     private drawConnections(

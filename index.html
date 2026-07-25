@@ -293,22 +293,16 @@
 
           </div>
 
-          <label class="playfield-size-control">
-            <span>Playfield size</span>
+          <label class="playfield-width-control">
+            <span>Playfield width</span>
 
-            <select id="playfield-size-select">
-              <option value="compact">
-                Compact
-              </option>
+            <div class="playfield-width-control__input">
+              <input id="playfield-width-input" type="range" min="640" max="1180" step="10" value="1180" />
 
-              <option value="medium">
-                Medium
-              </option>
-
-              <option value="large" selected>
-                Large
-              </option>
-            </select>
+              <output id="playfield-width-value" for="playfield-width-input">
+                1180 px
+              </output>
+            </div>
           </label>
 
           <div class="game-buttons">

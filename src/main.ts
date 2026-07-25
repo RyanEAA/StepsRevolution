@@ -25,10 +25,16 @@ import type {
 
 import { LibraryView } from "./ui/LibraryView";
 
-import {
-  PLAYFIELD_SIZE_STORAGE_KEY,
-  type PlayfieldSize,
-} from "./types/PlayfieldSize";
+/* ========================================================
+    GLOBAL CONSTANTS
+  ========================================================= */
+
+const PLAYFIELD_WIDTH_STORAGE_KEY =
+  "dance-vision.playfield-width";
+
+const DEFAULT_PLAYFIELD_WIDTH = 1180;
+const MIN_PLAYFIELD_WIDTH = 640;
+const MAX_PLAYFIELD_WIDTH = 1180;
 
 /* =========================================================
    DOM HELPERS
@@ -47,6 +53,21 @@ function requireElement<T extends Element>(
 
   return element;
 }
+
+const gameContainer =
+  requireElement<HTMLElement>(
+    ".game-container",
+  );
+
+const playfieldWidthInput =
+  requireElement<HTMLInputElement>(
+    "#playfield-width-input",
+  );
+
+const playfieldWidthValue =
+  requireElement<HTMLOutputElement>(
+    "#playfield-width-value",
+  );
 
 
 
@@ -200,15 +221,6 @@ const cameraPreview =
     "#camera-preview",
   );
 
-const gameContainer =
-  requireElement<HTMLElement>(
-    ".game-container",
-  );
-
-const playfieldSizeSelect =
-  requireElement<HTMLSelectElement>(
-    "#playfield-size-select",
-  );
 
 /* =========================================================
     POSE TRACKING
@@ -460,6 +472,22 @@ const cameraInput = new CameraFootInput(
   cameraInput,
 );
 const renderer = new CanvasRenderer(canvas);
+
+const gameContainerResizeObserver =
+  new ResizeObserver(() => {
+    if (
+      viewManager.isShowing(
+        "gameplay",
+      )
+    ) {
+      renderer.resize();
+    }
+  });
+
+gameContainerResizeObserver.observe(
+  gameContainer,
+);
+
 const game = new Game();
 const audioClock = new AudioClock();
 
@@ -1220,8 +1248,8 @@ async function handleLibraryFolderSelection(): Promise<void> {
       newLibrary,
     );
 
-    setPlayfieldSize(
-      loadPlayfieldSize(),
+    setPlayfieldWidth(
+      loadPlayfieldWidth(),
       false,
     );
 
@@ -1755,6 +1783,8 @@ function cleanUp(): void {
   );
 
   songPreviewPlayer.destroy();
+
+  gameContainerResizeObserver.disconnect();
 }
 
 /* =========================================================
@@ -2014,21 +2044,22 @@ cameraMirrorToggle.addEventListener(
   },
 );
 
-playfieldSizeSelect.addEventListener(
-  "change",
+playfieldWidthInput.addEventListener(
+  "input",
   () => {
-    const selectedSize =
-      playfieldSizeSelect.value;
-
-    if (!isPlayfieldSize(selectedSize)) {
+    const width =
+      Number.parseInt(
+        playfieldWidthInput.value,
+        10,
+      );
+    if (!Number.isFinite(width)) {
       return;
     }
 
-    setPlayfieldSize(
-      selectedSize,
-    );
+    setPlayfieldWidth(width);
   },
 );
+
 
 /* =========================================================
    INITIALIZATION
@@ -2080,61 +2111,68 @@ animationFrameId =
   requestAnimationFrame(gameLoop);
 
 
-// Playing Field Size
-function isPlayfieldSize(
-  value: string,
-): value is PlayfieldSize {
-  return (
-    value === "compact" ||
-    value === "medium" ||
-    value === "large"
+/* =========================================================
+    GAME-CANVAS WIDTH FUNCTIONS
+========================================================= */
+function clampPlayfieldWidth(
+  width: number,
+): number {
+  return Math.min(
+    Math.max(
+      width,
+      MIN_PLAYFIELD_WIDTH,
+    ),
+    MAX_PLAYFIELD_WIDTH,
   );
 }
 
-function setPlayfieldSize(
-  size: PlayfieldSize,
+function setPlayfieldWidth(
+  width: number,
   persist = true,
 ): void {
-  gameContainer.classList.remove(
-    "game-container--compact",
-    "game-container--medium",
-    "game-container--large",
+  const clampedWidth =
+    clampPlayfieldWidth(width);
+
+  gameContainer.style.setProperty(
+    "--playfield-width",
+    `${clampedWidth}px`,
   );
 
-  gameContainer.classList.add(
-    `game-container--${size}`,
-  );
+  playfieldWidthInput.value =
+    clampedWidth.toString();
 
-  playfieldSizeSelect.value = size;
+  playfieldWidthValue.value =
+    `${clampedWidth} px`;
 
   if (persist) {
     localStorage.setItem(
-      PLAYFIELD_SIZE_STORAGE_KEY,
-      size,
+      PLAYFIELD_WIDTH_STORAGE_KEY,
+      clampedWidth.toString(),
     );
   }
-
-  /*
-   * Wait until the browser has applied the new CSS dimensions
-   * before resizing the canvas backing buffer.
-   */
-  requestAnimationFrame(() => {
-    renderer.resize();
-  });
 }
 
-function loadPlayfieldSize(): PlayfieldSize {
-  const savedSize =
+function loadPlayfieldWidth(): number {
+  const storedValue =
     localStorage.getItem(
-      PLAYFIELD_SIZE_STORAGE_KEY,
+      PLAYFIELD_WIDTH_STORAGE_KEY,
     );
 
-  if (
-    savedSize &&
-    isPlayfieldSize(savedSize)
-  ) {
-    return savedSize;
+  if (!storedValue) {
+    return DEFAULT_PLAYFIELD_WIDTH;
   }
 
-  return "large";
+  const parsedValue =
+    Number.parseInt(
+      storedValue,
+      10,
+    );
+
+  if (!Number.isFinite(parsedValue)) {
+    return DEFAULT_PLAYFIELD_WIDTH;
+  }
+
+  return clampPlayfieldWidth(
+    parsedValue,
+  );
 }

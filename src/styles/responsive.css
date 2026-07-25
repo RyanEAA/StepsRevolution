@@ -100,19 +100,13 @@
         flex-direction: column;
     }
 
-    .game-container--compact,
-    .game-container--medium,
-    .game-container--large {
-        --playfield-max-width: 100%;
-        --playfield-height: 560px;
-    }
 }
 
 /* =========================================================
    SMALL MOBILE
    ========================================================= */
 
-@media (max-width: 480px) {
+@media (max-width: 760px) {
     .control-group__label {
         display: none;
     }
@@ -136,5 +130,9 @@
 
     .results-actions {
         flex-direction: column;
+    }
+
+    .game-container {
+        height: 560px;
     }
 }

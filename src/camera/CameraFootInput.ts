@@ -112,6 +112,23 @@ export class CameraFootInput implements InputSource {
                 this.poseTracker.detect(nowMs);
 
             if (!result) {
+                /*
+                 * No inference was performed this animation frame.
+                 * Keep the most recent inference result.
+                 */
+                return;
+            }
+
+            const landmarks =
+                result.landmarks[0];
+
+            if (!landmarks) {
+                /*
+                 * Inference ran successfully, but MediaPipe did not
+                 * detect a pose.
+                 */
+                this.setInvisible(nowMs);
+                this.overlayRenderer.clear();
                 return;
             }
 
@@ -119,7 +136,7 @@ export class CameraFootInput implements InputSource {
 
             const feet =
                 this.estimator.estimate(
-                    result.landmarks[0],
+                    landmarks,
                 );
 
             this.applyEstimate(
