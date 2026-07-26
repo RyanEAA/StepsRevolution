@@ -106,7 +106,11 @@
    SMALL MOBILE
    ========================================================= */
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
+    .gameplay-stage {
+        flex-direction: column;
+    }
+
     .control-group__label {
         display: none;
     }
@@ -134,5 +138,12 @@
 
     .game-container {
         height: 560px;
+    }
+
+    .game-debug-panel {
+        position: static;
+
+        width: 100%;
+        flex-basis: auto;
     }
 }

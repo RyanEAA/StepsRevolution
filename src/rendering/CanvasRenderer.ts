@@ -73,7 +73,6 @@ export class CanvasRenderer {
         footState: FootState,
         notes: readonly TapNote[],
         gameState: Readonly<GameState>,
-        framesPerSecond: number,
     ): void {
         this.clearCanvas();
         this.drawBackground();
@@ -89,11 +88,6 @@ export class CanvasRenderer {
 
         this.drawGameHud(gameState);
 
-        this.drawDebugPanel(
-            footState,
-            gameState,
-            framesPerSecond,
-        );
     }
 
     private drawBackground(): void {
@@ -294,90 +288,6 @@ export class CanvasRenderer {
             label,
             x,
             y + 1,
-        );
-    }
-
-    private drawDebugPanel(
-        footState: FootState,
-        gameState: Readonly<GameState>,
-        framesPerSecond: number,
-    ): void {
-        const leftLane = this.positionToLane(footState.leftX);
-        const rightLane = this.positionToLane(footState.rightX);
-
-        const panelX = 14;
-        const panelY = 104;
-        const panelWidth = Math.min(330, this.cssWidth - 28);
-        const panelHeight = 168;
-
-        this.context.fillStyle = "rgba(3, 7, 14, 0.78)";
-        this.context.fillRect(
-            panelX,
-            panelY,
-            panelWidth,
-            panelHeight,
-        );
-
-        this.context.strokeStyle = "rgba(255, 255, 255, 0.14)";
-        this.context.lineWidth = 1;
-        this.context.strokeRect(
-            panelX,
-            panelY,
-            panelWidth,
-            panelHeight,
-        );
-
-        this.context.textAlign = "left";
-        this.context.textBaseline = "top";
-
-        this.context.fillStyle = "rgba(255, 255, 255, 0.55)";
-        this.context.font = "600 11px ui-monospace, monospace";
-        this.context.fillText("DEBUG", panelX + 14, panelY + 12);
-
-        this.context.fillStyle = "rgba(255, 255, 255, 0.55)";
-        this.context.font = "600 11px ui-monospace, monospace";
-
-        this.context.fillText(
-            "DEBUG",
-            panelX + 14,
-            panelY + 12,
-        );
-
-        this.context.fillStyle = "#5ee7ff";
-        this.context.font = "600 14px ui-monospace, monospace";
-
-        this.context.fillText(
-            `Left:  x=${footState.leftX.toFixed(3)}  lane=${leftLane}`,
-            panelX + 14,
-            panelY + 38,
-        );
-
-        this.context.fillStyle = "#ff76cf";
-
-        this.context.fillText(
-            `Right: x=${footState.rightX.toFixed(3)}  lane=${rightLane}`,
-            panelX + 14,
-            panelY + 63,
-        );
-
-        this.context.fillStyle = "rgba(255, 255, 255, 0.75)";
-
-        this.context.fillText(
-            `Time: ${gameState.gameTimeSeconds.toFixed(3)} s`,
-            panelX + 14,
-            panelY + 88,
-        );
-
-        this.context.fillText(
-            `Status: ${gameState.status}`,
-            panelX + 14,
-            panelY + 113,
-        );
-
-        this.context.fillText(
-            `FPS: ${framesPerSecond.toFixed(1)}`,
-            panelX + 14,
-            panelY + 138,
         );
     }
 

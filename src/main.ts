@@ -33,8 +33,12 @@ const PLAYFIELD_WIDTH_STORAGE_KEY =
   "dance-vision.playfield-width";
 
 const DEFAULT_PLAYFIELD_WIDTH = 1180;
-const MIN_PLAYFIELD_WIDTH = 480;
+const MIN_PLAYFIELD_WIDTH = 400;
 const MAX_PLAYFIELD_WIDTH = 1180;
+
+const DEBUG_VISIBLE_STORAGE_KEY =
+  "dance-vision.debug-visible";
+let debugVisible = true;
 
 /* =========================================================
    DOM HELPERS
@@ -69,7 +73,55 @@ const playfieldWidthValue =
     "#playfield-width-value",
   );
 
+const gameDebugPanel =
+  requireElement<HTMLElement>(
+    "#game-debug-panel",
+  );
 
+const debugToggleButton =
+  requireElement<HTMLButtonElement>(
+    "#debug-toggle-button",
+  );
+
+const debugHideButton =
+  requireElement<HTMLButtonElement>(
+    "#debug-hide-button",
+  );
+
+const debugLeftX =
+  requireElement<HTMLElement>(
+    "#debug-left-x",
+  );
+
+const debugRightX =
+  requireElement<HTMLElement>(
+    "#debug-right-x",
+  );
+
+const debugLeftLane =
+  requireElement<HTMLElement>(
+    "#debug-left-lane",
+  );
+
+const debugRightLane =
+  requireElement<HTMLElement>(
+    "#debug-right-lane",
+  );
+
+const debugGameTime =
+  requireElement<HTMLElement>(
+    "#debug-game-time",
+  );
+
+const debugGameStatus =
+  requireElement<HTMLElement>(
+    "#debug-game-status",
+  );
+
+const debugFps =
+  requireElement<HTMLElement>(
+    "#debug-fps",
+  );
 
 /* =========================================================
    MAIN VIEWS
@@ -884,6 +936,10 @@ function gameLoop(
     currentFramesPerSecond * 0.1;
 
   const gameState = game.getState();
+  updateGameDebugPanel(
+    footState,
+    gameState,
+  );
 
   /*
    * Canvas rendering is only useful while the gameplay view is open.
@@ -894,7 +950,6 @@ function gameLoop(
       footState,
       game.getVisibleNotes(),
       gameState,
-      smoothedFramesPerSecond,
     );
   }
 
@@ -1477,6 +1532,18 @@ function returnToSongSelection(): void {
   );
 }
 
+function positionToLane(
+  position: number,
+): number {
+  const lane =
+    Math.floor(position * 4);
+
+  return Math.min(
+    Math.max(lane, 0),
+    3,
+  );
+}
+
 /* =========================================================
    RESULTS
    ========================================================= */
@@ -1573,8 +1640,88 @@ function reportAudioError(
       : "An audio error occurred.";
 }
 
+function updateGameDebugPanel(
+  footState: FootState,
+  gameState: Readonly<GameState>,
+): void {
+  if (!debugVisible) {
+    return;
+  }
+
+  debugLeftX.textContent =
+    footState.leftVisible
+      ? footState.leftX.toFixed(3)
+      : "hidden";
+
+  debugRightX.textContent =
+    footState.rightVisible
+      ? footState.rightX.toFixed(3)
+      : "hidden";
+
+  debugLeftLane.textContent =
+    footState.leftVisible
+      ? positionToLane(
+        footState.leftX,
+      ).toString()
+      : "—";
+
+  debugRightLane.textContent =
+    footState.rightVisible
+      ? positionToLane(
+        footState.rightX,
+      ).toString()
+      : "—";
+
+  debugGameTime.textContent =
+    `${gameState.gameTimeSeconds.toFixed(3)} s`;
+
+  debugGameStatus.textContent =
+    gameState.status;
+
+  debugFps.textContent =
+    smoothedFramesPerSecond.toFixed(1);
+}
+
+function setDebugVisible(
+  visible: boolean,
+  persist = true,
+): void {
+  debugVisible = visible;
+
+  gameDebugPanel.hidden =
+    !visible;
+
+  debugToggleButton.textContent =
+    visible
+      ? "Hide debug"
+      : "Show debug";
+
+  debugToggleButton.setAttribute(
+    "aria-pressed",
+    visible
+      ? "true"
+      : "false",
+  );
+
+  if (persist) {
+    localStorage.setItem(
+      DEBUG_VISIBLE_STORAGE_KEY,
+      visible
+        ? "true"
+        : "false",
+    );
+  }
+}
+function loadDebugVisible(): boolean {
+  return (
+    localStorage.getItem(
+      DEBUG_VISIBLE_STORAGE_KEY,
+    ) !== "false"
+  );
+}
+
 /* =========================================================
-   CAMERA SETUP — MILESTONE 1
+   CAMERA SETUP
    ========================================================= */
 
 function setCameraStatus(
@@ -2061,6 +2208,22 @@ playfieldWidthInput.addEventListener(
 );
 
 
+debugToggleButton.addEventListener(
+  "click",
+  () => {
+    setDebugVisible(
+      !debugVisible,
+    );
+  },
+);
+
+debugHideButton.addEventListener(
+  "click",
+  () => {
+    setDebugVisible(false);
+  },
+);
+
 /* =========================================================
    INITIALIZATION
    ========================================================= */
@@ -2110,6 +2273,10 @@ viewManager.show(
 animationFrameId =
   requestAnimationFrame(gameLoop);
 
+setDebugVisible(
+  loadDebugVisible(),
+  false,
+);
 
 /* =========================================================
     GAME-CANVAS WIDTH FUNCTIONS

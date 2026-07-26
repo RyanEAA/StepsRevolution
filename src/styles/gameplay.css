@@ -87,7 +87,19 @@
     transform: translateY(0);
 }
 
+.gameplay-stage {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+
+    width: 100%;
+}
+
+
 .game-container {
+    flex: 0 1 var(--playfield-width, 1180px);
+
     position: relative;
 
     width: min(var(--playfield-width, 1180px),
@@ -171,4 +183,109 @@
 
     font-size: 0.76rem;
     text-align: right;
+}
+
+.game-debug-panel {
+    flex: 0 0 250px;
+
+    position: sticky;
+    top: 16px;
+
+    padding: 14px;
+
+    color: var(--text-primary);
+    background: rgba(3, 7, 14, 0.92);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-medium);
+
+    box-shadow:
+        0 18px 50px rgba(0, 0, 0, 0.32);
+}
+
+.game-debug-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    margin-bottom: 12px;
+
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.game-debug-panel__close {
+    display: grid;
+    place-items: center;
+
+    width: 28px;
+    height: 28px;
+    padding: 0;
+
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+
+    cursor: pointer;
+}
+
+.game-debug-panel__close:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.11);
+}
+
+.game-debug-values {
+    display: grid;
+    gap: 7px;
+
+    margin: 0;
+}
+
+.game-debug-values div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    padding-bottom: 7px;
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.07);
+}
+
+.game-debug-values div:last-child {
+    padding-bottom: 0;
+
+    border-bottom: 0;
+}
+
+.game-debug-values dt {
+    color: var(--text-muted);
+
+    font-size: 0.75rem;
+}
+
+.game-debug-values dd {
+    margin: 0;
+
+    color: var(--text-primary);
+
+    font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        monospace;
+
+    font-size: 0.76rem;
+}
+
+.game-debug-toggle-row {
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 10px;
 }
