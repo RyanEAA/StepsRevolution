@@ -33,7 +33,7 @@ const PLAYFIELD_WIDTH_STORAGE_KEY =
   "dance-vision.playfield-width";
 
 const DEFAULT_PLAYFIELD_WIDTH = 1180;
-const MIN_PLAYFIELD_WIDTH = 640;
+const MIN_PLAYFIELD_WIDTH = 480;
 const MAX_PLAYFIELD_WIDTH = 1180;
 
 /* =========================================================

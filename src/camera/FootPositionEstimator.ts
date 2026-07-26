@@ -4,7 +4,7 @@ import type {
 
 import {
     CameraCoordinateMapper,
-} from "./CameraCoordinatorMapper";
+} from "./CameraCoordinateMapper";
 
 const LEFT_ANKLE = 27;
 const RIGHT_ANKLE = 28;

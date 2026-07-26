@@ -26,7 +26,7 @@ import {
 
 import {
     CameraCoordinateMapper,
-} from "./CameraCoordinatorMapper";
+} from "./CameraCoordinateMapper";
 
 export interface CameraFootDebugState {
     leftSourceX: number;
@@ -111,7 +111,7 @@ export class CameraFootInput implements InputSource {
         this.overlayRenderer =
             new PoseOverlayRenderer(
                 poseOverlayCanvas,
-                videoElement,
+                this.coordinateMapper,
             );
     }
 
@@ -196,9 +196,6 @@ export class CameraFootInput implements InputSource {
         mirrored: boolean,
     ): void {
         this.coordinateMapper.setMirrored(
-            mirrored,
-        );
-        this.overlayRenderer.setMirrored(
             mirrored,
         );
     }

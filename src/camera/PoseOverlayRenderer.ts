@@ -1,3 +1,7 @@
+import {
+    CameraCoordinateMapper,
+} from "./CameraCoordinateMapper";
+
 import type {
     PoseLandmarkerResult,
 } from "@mediapipe/tasks-vision";
@@ -32,18 +36,23 @@ interface CanvasPoint {
 }
 
 export class PoseOverlayRenderer {
-    private readonly canvas: HTMLCanvasElement;
-    private readonly videoElement: HTMLVideoElement;
-    private readonly context: CanvasRenderingContext2D;
+    private readonly canvas:
+        HTMLCanvasElement;
 
-    private mirrored = true;
+    private readonly context:
+        CanvasRenderingContext2D;
+
+    private readonly coordinateMapper:
+        CameraCoordinateMapper;
+
 
     constructor(
         canvas: HTMLCanvasElement,
-        videoElement: HTMLVideoElement,
+        coordinateMapper: CameraCoordinateMapper,
     ) {
         this.canvas = canvas;
-        this.videoElement = videoElement;
+        this.coordinateMapper =
+            coordinateMapper;
 
         const context =
             canvas.getContext("2d");
@@ -55,10 +64,6 @@ export class PoseOverlayRenderer {
         }
 
         this.context = context;
-    }
-
-    public setMirrored(mirrored: boolean): void {
-        this.mirrored = mirrored;
     }
 
     public render(
@@ -200,64 +205,21 @@ export class PoseOverlayRenderer {
         normalizedX: number,
         normalizedY: number,
     ): CanvasPoint {
-        const videoWidth =
-            this.videoElement.videoWidth;
-
-        const videoHeight =
-            this.videoElement.videoHeight;
-
-        if (
-            videoWidth === 0 ||
-            videoHeight === 0
-        ) {
-            return {
-                x: 0,
-                y: 0,
-            };
-        }
-
-        const destinationWidth =
-            this.canvas.clientWidth;
-
-        const destinationHeight =
-            this.canvas.clientHeight;
-
-        /*
-         * The video uses object-fit: cover. Apply the same scaling and
-         * cropping calculation so landmarks align with the preview.
-         */
-        const scale = Math.max(
-            destinationWidth / videoWidth,
-            destinationHeight / videoHeight,
-        );
-
-        const renderedWidth =
-            videoWidth * scale;
-
-        const renderedHeight =
-            videoHeight * scale;
-
-        const offsetX =
-            (destinationWidth -
-                renderedWidth) /
-            2;
-
-        const offsetY =
-            (destinationHeight -
-                renderedHeight) /
-            2;
-
-        const displayX = this.mirrored
-            ? 1 - normalizedX
-            : normalizedX;
+        const displayPoint =
+            this.coordinateMapper
+                .mapPointToDisplay(
+                    normalizedX,
+                    normalizedY,
+                );
 
         return {
             x:
-                offsetX +
-                displayX * renderedWidth,
+                displayPoint.x *
+                this.canvas.clientWidth,
+
             y:
-                offsetY +
-                normalizedY * renderedHeight,
+                displayPoint.y *
+                this.canvas.clientHeight,
         };
     }
 
