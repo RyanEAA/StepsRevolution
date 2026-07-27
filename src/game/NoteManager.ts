@@ -32,21 +32,38 @@ export class NoteManager {
             );
     }
 
-    public removeFinishedNotes(
-        notes: readonly TapNote[],
+    public pruneFinishedNotes(
+        notes: TapNote[],
         gameTimeSeconds: number,
         removalDelaySeconds: number,
-    ): TapNote[] {
-        return notes.filter((note) => {
-            if (!note.judged) {
-                return true;
+    ): void {
+        /*
+         * Notes are sorted by hit time. Once the leading note is not
+         * ready for removal, no later note can be ready either.
+         */
+        let removalCount = 0;
+
+        while (removalCount < notes.length) {
+            const note = notes[removalCount];
+
+            if (
+                note === undefined ||
+                !note.judged ||
+                gameTimeSeconds <
+                    note.hitTimeSeconds +
+                        removalDelaySeconds
+            ) {
+                break;
             }
 
-            return (
-                gameTimeSeconds <
-                note.hitTimeSeconds +
-                removalDelaySeconds
-            );
-        });
+            removalCount += 1;
+        }
+
+        if (removalCount === 0) {
+            return;
+        }
+
+        notes.copyWithin(0, removalCount);
+        notes.length -= removalCount;
     }
 }

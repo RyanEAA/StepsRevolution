@@ -142,12 +142,11 @@ export class Game {
                 judgmentResults.at(-1) ?? null;
         }
 
-        this.state.notes =
-            this.noteManager.removeFinishedNotes(
-                this.state.notes,
-                this.state.gameTimeSeconds,
-                JUDGED_NOTE_REMOVAL_DELAY_SECONDS,
-            );
+        this.noteManager.pruneFinishedNotes(
+            this.state.notes,
+            this.state.gameTimeSeconds,
+            JUDGED_NOTE_REMOVAL_DELAY_SECONDS,
+        );
 
         const finishTime =
             this.chartEndTimeSeconds +

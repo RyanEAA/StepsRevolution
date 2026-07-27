@@ -34,7 +34,11 @@ export class JudgmentSystem {
              * note until its scheduled hit time has arrived.
              */
             if (timingErrorSeconds < 0) {
-                continue;
+                /*
+                 * Notes are sorted by hit time, so every remaining
+                 * note is also in the future.
+                 */
+                break;
             }
 
             const correctPlacement = this.canEitherFootHitLane(
