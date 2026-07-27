@@ -9,6 +9,9 @@ export class CameraCoordinateMapper {
 
     private mirrored = true;
 
+    private displayGeometry:
+        DisplayGeometry | null = null;
+
     constructor(
         videoElement: HTMLVideoElement,
         displayElement: HTMLElement,
@@ -23,82 +26,7 @@ export class CameraCoordinateMapper {
         this.mirrored = mirrored;
     }
 
-    public mapXToDisplay(
-        sourceX: number,
-    ): number {
-        const geometry =
-            this.getDisplayGeometry();
-
-        if (!geometry) {
-            return 0.5;
-        }
-
-        const transformedSourceX =
-            this.mirrored
-                ? 1 - sourceX
-                : sourceX;
-
-        const displayPixelX =
-            geometry.offsetX +
-            transformedSourceX *
-            geometry.renderedWidth;
-
-        return this.clamp(
-            displayPixelX /
-            geometry.displayWidth,
-            0,
-            1,
-        );
-    }
-
-    public mapPointToDisplay(
-        sourceX: number,
-        sourceY: number,
-    ): DisplayPoint {
-        const geometry =
-            this.getDisplayGeometry();
-
-        if (!geometry) {
-            return {
-                x: 0.5,
-                y: 0.5,
-            };
-        }
-
-        const transformedSourceX =
-            this.mirrored
-                ? 1 - sourceX
-                : sourceX;
-
-        const displayPixelX =
-            geometry.offsetX +
-            transformedSourceX *
-            geometry.renderedWidth;
-
-        const displayPixelY =
-            geometry.offsetY +
-            sourceY *
-            geometry.renderedHeight;
-
-        return {
-            x: this.clamp(
-                displayPixelX /
-                geometry.displayWidth,
-                0,
-                1,
-            ),
-
-            y: this.clamp(
-                displayPixelY /
-                geometry.displayHeight,
-                0,
-                1,
-            ),
-        };
-    }
-
-    private getDisplayGeometry():
-        DisplayGeometry | null {
+    public refreshDisplayGeometry(): void {
         const videoWidth =
             this.videoElement.videoWidth;
 
@@ -117,7 +45,8 @@ export class CameraCoordinateMapper {
             displayWidth <= 0 ||
             displayHeight <= 0
         ) {
-            return null;
+            this.displayGeometry = null;
+            return;
         }
 
         /*
@@ -135,22 +64,87 @@ export class CameraCoordinateMapper {
             videoHeight * scale;
 
         const offsetX =
-            (displayWidth -
-                renderedWidth) /
-            2;
+            (displayWidth - renderedWidth) / 2;
 
         const offsetY =
-            (displayHeight -
-                renderedHeight) /
-            2;
+            (displayHeight - renderedHeight) / 2;
+
+        /*
+         * Store normalized geometry so each landmark mapping
+         * avoids repeating divisions by the display dimensions.
+         */
+        this.displayGeometry = {
+            normalizedOffsetX:
+                offsetX / displayWidth,
+
+            normalizedOffsetY:
+                offsetY / displayHeight,
+
+            normalizedRenderedWidth:
+                renderedWidth / displayWidth,
+
+            normalizedRenderedHeight:
+                renderedHeight / displayHeight,
+        };
+    }
+
+    public mapXToDisplay(
+        sourceX: number,
+    ): number {
+        const geometry = this.displayGeometry;
+
+        if (!geometry) {
+            return 0.5;
+        }
+
+        const transformedSourceX =
+            this.mirrored
+                ? 1 - sourceX
+                : sourceX;
+
+        return this.clamp(
+            geometry.normalizedOffsetX +
+            transformedSourceX *
+            geometry.normalizedRenderedWidth,
+            0,
+            1,
+        );
+    }
+
+    public mapPointToDisplay(
+        sourceX: number,
+        sourceY: number,
+    ): DisplayPoint {
+        const geometry = this.displayGeometry;
+
+        if (!geometry) {
+            return {
+                x: 0.5,
+                y: 0.5,
+            };
+        }
+
+        const transformedSourceX =
+            this.mirrored
+                ? 1 - sourceX
+                : sourceX;
 
         return {
-            displayWidth,
-            displayHeight,
-            renderedWidth,
-            renderedHeight,
-            offsetX,
-            offsetY,
+            x: this.clamp(
+                geometry.normalizedOffsetX +
+                transformedSourceX *
+                geometry.normalizedRenderedWidth,
+                0,
+                1,
+            ),
+
+            y: this.clamp(
+                geometry.normalizedOffsetY +
+                sourceY *
+                geometry.normalizedRenderedHeight,
+                0,
+                1,
+            ),
         };
     }
 
@@ -167,12 +161,9 @@ export class CameraCoordinateMapper {
 }
 
 interface DisplayGeometry {
-    displayWidth: number;
-    displayHeight: number;
+    normalizedOffsetX: number;
+    normalizedOffsetY: number;
 
-    renderedWidth: number;
-    renderedHeight: number;
-
-    offsetX: number;
-    offsetY: number;
+    normalizedRenderedWidth: number;
+    normalizedRenderedHeight: number;
 }

@@ -148,6 +148,9 @@ export class CameraFootInput implements InputSource {
                 return;
             }
 
+            this.coordinateMapper
+                .refreshDisplayGeometry();
+
             const landmarks =
                 result.landmarks[0];
 
