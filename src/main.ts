@@ -7,7 +7,7 @@ import { FolderImporter } from "./library/FolderImporter";
 import { LibraryBuilder } from "./library/LibraryBuilder";
 import { CameraFootInput } from "./camera/CameraFootInput";
 import { CameraManager } from "./camera/CameraManager";
-import { InputManager, type InputMode } from "./input/InputManager";
+import { InputManager } from "./input/InputManager";
 import { KeyboardInput } from "./input/KeyboardInput";
 import { CanvasRenderer } from "./rendering/CanvasRenderer";
 import { RuntimeChartBuilder } from "./stepmania/RuntimeChartBuilder";
@@ -27,6 +27,7 @@ import { LibraryView } from "./ui/LibraryView";
 import { GameDebugPanel } from "./ui/GameDebugPanel";
 import { CameraTrackingDebugPanel } from "./ui/CameraTrackingDebugPanel";
 import { GameLoop } from "./loop/GameLoop";
+import { CameraController } from "./controllers/CameraController";
 
 /* ========================================================
     GLOBAL CONSTANTS
@@ -195,36 +196,6 @@ const restartButton =
     "#restart-button",
   );
 
-const inputModeSelect =
-  requireElement<HTMLSelectElement>(
-    "#input-mode-select",
-  );
-
-const cameraDeviceSelect =
-  requireElement<HTMLSelectElement>(
-    "#camera-device-select",
-  );
-
-const cameraMirrorToggle =
-  requireElement<HTMLInputElement>(
-    "#camera-mirror-toggle",
-  );
-
-const cameraEnableButton =
-  requireElement<HTMLButtonElement>(
-    "#camera-enable-button",
-  );
-
-const cameraDisableButton =
-  requireElement<HTMLButtonElement>(
-    "#camera-disable-button",
-  );
-
-const cameraStatus =
-  requireElement<HTMLElement>(
-    "#camera-status",
-  );
-
 const cameraPreview =
   requireElement<HTMLVideoElement>(
     "#camera-preview",
@@ -239,63 +210,6 @@ const poseOverlayCanvas =
     "#pose-overlay-canvas",
   );
 
-const cameraVisibilityThreshold =
-  requireElement<HTMLInputElement>(
-    "#camera-visibility-threshold",
-  );
-
-const cameraVisibilityThresholdValue =
-  requireElement<HTMLOutputElement>(
-    "#camera-visibility-threshold-value",
-  );
-
-const cameraInferenceFps =
-  requireElement<HTMLInputElement>(
-    "#camera-inference-fps",
-  );
-
-const cameraInferenceFpsValue =
-  requireElement<HTMLOutputElement>(
-    "#camera-inference-fps-value",
-  );
-
-
-
-cameraVisibilityThreshold.addEventListener(
-  "input",
-  () => {
-    const threshold =
-      Number.parseFloat(
-        cameraVisibilityThreshold.value,
-      );
-
-    cameraInput.setVisibilityThreshold(
-      threshold,
-    );
-
-    cameraVisibilityThresholdValue.value =
-      threshold.toFixed(2);
-  },
-);
-
-cameraInferenceFps.addEventListener(
-  "input",
-  () => {
-    const framesPerSecond =
-      Number.parseInt(
-        cameraInferenceFps.value,
-        10,
-      );
-
-    cameraInput
-      .setInferenceFramesPerSecond(
-        framesPerSecond,
-      );
-
-    cameraInferenceFpsValue.value =
-      framesPerSecond.toString();
-  },
-);
 
 /* =========================================================
    RESULTS
@@ -399,6 +313,11 @@ const cameraInput = new CameraFootInput(
   poseOverlayCanvas,
 ); const input = new InputManager(
   keyboardInput,
+  cameraInput,
+);
+const cameraController = new CameraController(
+  input,
+  cameraManager,
   cameraInput,
 );
 const renderer = new CanvasRenderer(canvas);
@@ -1428,143 +1347,6 @@ function reportAudioError(
 }
 
 /* =========================================================
-   CAMERA SETUP
-   ========================================================= */
-
-function setCameraStatus(
-  message: string,
-  isError = false,
-): void {
-  cameraStatus.textContent = message;
-  cameraStatus.classList.toggle(
-    "camera-status--error",
-    isError,
-  );
-}
-
-function setInputMode(mode: InputMode): void {
-  input.setMode(mode);
-  inputModeSelect.value = mode;
-
-  if (mode === "camera") {
-    setCameraStatus(
-      cameraManager.isRunning()
-        ? "Camera pose tracking is active."
-        : "Camera input selected, but the camera is not running.",
-    );
-  } else {
-    setCameraStatus(
-      cameraManager.isRunning()
-        ? "Keyboard input selected. Camera preview remains active."
-        : "Keyboard input is active.",
-    );
-  }
-}
-
-async function refreshCameraList(): Promise<void> {
-  const previousSelection =
-    cameraManager.getSelectedDeviceId() ??
-    cameraDeviceSelect.value;
-
-  const cameras = await cameraManager.listCameras();
-  cameraDeviceSelect.replaceChildren();
-
-  if (cameras.length === 0) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "No cameras found";
-    cameraDeviceSelect.append(option);
-    cameraDeviceSelect.disabled = true;
-    return;
-  }
-
-  cameras.forEach((camera, index) => {
-    const option = document.createElement("option");
-    option.value = camera.deviceId;
-    option.textContent =
-      camera.label || `Camera ${index + 1}`;
-    cameraDeviceSelect.append(option);
-  });
-
-  const matchingCamera = cameras.find(
-    (camera) => camera.deviceId === previousSelection,
-  );
-
-  cameraDeviceSelect.value =
-    matchingCamera?.deviceId ?? cameras[0]?.deviceId ?? "";
-  cameraDeviceSelect.disabled = false;
-}
-
-async function startSelectedCamera(): Promise<void> {
-  cameraEnableButton.disabled = true;
-  cameraDeviceSelect.disabled = true;
-
-  try {
-    const selectedDeviceId =
-      cameraDeviceSelect.value || undefined;
-
-    await cameraManager.start(selectedDeviceId);
-    await cameraInput.initialize();
-    await refreshCameraList();
-
-    const activeDeviceId = cameraManager.getSelectedDeviceId();
-    if (activeDeviceId) {
-      cameraDeviceSelect.value = activeDeviceId;
-    }
-
-    cameraDisableButton.disabled = false;
-    setInputMode("camera");
-  } catch (error) {
-    console.error(error);
-    setInputMode("keyboard");
-  } finally {
-    cameraEnableButton.disabled = false;
-    cameraDeviceSelect.disabled = !cameraManager.isRunning();
-  }
-}
-
-function stopCamera(): void {
-  cameraManager.stop();
-  cameraDisableButton.disabled = true;
-  cameraDeviceSelect.disabled = true;
-
-  if (input.getMode() === "camera") {
-    setInputMode("keyboard");
-  }
-}
-
-const unsubscribeFromCameraStatus =
-  cameraManager.subscribe(
-    (status, message) => {
-      setCameraStatus(
-        message,
-        status === "error",
-      );
-
-      const running = status === "running";
-      cameraDisableButton.disabled = !running;
-
-      if (status === "error") {
-        setInputMode("keyboard");
-      }
-    },
-  );
-
-const unsubscribeFromPoseTrackerStatus =
-  cameraInput.subscribeToTrackerStatus(
-    (status, message) => {
-      setCameraStatus(
-        message,
-        status === "error",
-      );
-
-      if (status === "error") {
-        setInputMode("keyboard");
-      }
-    },
-  );
-
-/* =========================================================
    VIEW NAVIGATION
    ========================================================= */
 
@@ -1615,8 +1397,7 @@ function cleanUp(): void {
 
   gameLoop.stop();
 
-  unsubscribeFromCameraStatus();
-  unsubscribeFromPoseTrackerStatus();
+  cameraController.destroy();
   input.destroy();
   audioClock.destroy();
 
@@ -1819,60 +1600,6 @@ navLibraryButton.addEventListener(
   },
 );
 
-inputModeSelect.addEventListener(
-  "change",
-  () => {
-    const requestedMode =
-      inputModeSelect.value as InputMode;
-
-    if (
-      requestedMode === "camera" &&
-      !cameraManager.isRunning()
-    ) {
-      setInputMode("keyboard");
-      setCameraStatus(
-        "Enable the camera before selecting camera input.",
-        true,
-      );
-      return;
-    }
-
-    setInputMode(requestedMode);
-  },
-);
-
-cameraEnableButton.addEventListener(
-  "click",
-  () => {
-    void startSelectedCamera();
-  },
-);
-
-cameraDisableButton.addEventListener(
-  "click",
-  stopCamera,
-);
-
-cameraDeviceSelect.addEventListener(
-  "change",
-  () => {
-    if (cameraManager.isRunning()) {
-      void startSelectedCamera();
-    }
-  },
-);
-
-cameraMirrorToggle.addEventListener(
-  "change",
-  () => {
-    const mirrored =
-      cameraMirrorToggle.checked;
-
-    cameraManager.setMirrored(mirrored);
-    cameraInput.setMirrored(mirrored);
-  },
-);
-
 playfieldWidthInput.addEventListener(
   "input",
   () => {
@@ -1894,42 +1621,7 @@ playfieldWidthInput.addEventListener(
    INITIALIZATION
    ========================================================= */
 
-const initialMirror =
-  cameraMirrorToggle.checked;
-
-const initialVisibilityThreshold =
-  Number.parseFloat(
-    cameraVisibilityThreshold.value,
-  );
-
-const initialInferenceFramesPerSecond =
-  Number.parseInt(
-    cameraInferenceFps.value,
-    10,
-  );
-
-cameraManager.setMirrored(
-  initialMirror,
-);
-
-cameraInput.setMirrored(
-  initialMirror,
-);
-
-cameraInput.setVisibilityThreshold(
-  initialVisibilityThreshold,
-);
-
-cameraInput.setInferenceFramesPerSecond(
-  initialInferenceFramesPerSecond,
-);
-
-cameraVisibilityThresholdValue.value =
-  initialVisibilityThreshold.toFixed(2);
-
-cameraInferenceFpsValue.value =
-  initialInferenceFramesPerSecond.toString();
-setInputMode("keyboard");
+cameraController.initialize();
 updateButtonState();
 
 viewManager.show(
