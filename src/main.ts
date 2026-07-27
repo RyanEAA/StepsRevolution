@@ -28,6 +28,7 @@ import { CameraTrackingDebugPanel } from "./ui/CameraTrackingDebugPanel";
 import { GameLoop } from "./loop/GameLoop";
 import { CameraController } from "./controllers/CameraController";
 import { SongSelectionController } from "./controllers/SongSelectionController";
+import { GameplayController } from "./controllers/GameplayController";
 import { SongDialogView } from "./ui/SongDialogView";
 
 /* ========================================================
@@ -129,10 +130,6 @@ const backToPacksButton =
     "#back-to-packs-button",
   );
 
-const exitGameButton =
-  requireElement<HTMLButtonElement>(
-    "#exit-game-button",
-  );
 
 /* =========================================================
    LIBRARY IMPORT
@@ -172,31 +169,6 @@ const canvas =
     "#game-canvas",
   );
 
-const gameplayTitle =
-  requireElement<HTMLElement>(
-    "#gameplay-title",
-  );
-
-const gameplaySongArtist =
-  requireElement<HTMLElement>(
-    "#gameplay-song-artist",
-  );
-
-const startButton =
-  requireElement<HTMLButtonElement>(
-    "#start-button",
-  );
-
-const pauseButton =
-  requireElement<HTMLButtonElement>(
-    "#pause-button",
-  );
-
-const restartButton =
-  requireElement<HTMLButtonElement>(
-    "#restart-button",
-  );
-
 const cameraPreview =
   requireElement<HTMLVideoElement>(
     "#camera-preview",
@@ -211,50 +183,6 @@ const poseOverlayCanvas =
     "#pose-overlay-canvas",
   );
 
-
-/* =========================================================
-   RESULTS
-   ========================================================= */
-
-const resultsScoreValue =
-  requireElement<HTMLElement>(
-    "#results-score-value",
-  );
-
-const resultsPerfectCount =
-  requireElement<HTMLElement>(
-    "#results-perfect-count",
-  );
-
-const resultsGreatCount =
-  requireElement<HTMLElement>(
-    "#results-great-count",
-  );
-
-const resultsGoodCount =
-  requireElement<HTMLElement>(
-    "#results-good-count",
-  );
-
-const resultsMissCount =
-  requireElement<HTMLElement>(
-    "#results-miss-count",
-  );
-
-const resultsMaxCombo =
-  requireElement<HTMLElement>(
-    "#results-max-combo",
-  );
-
-const resultsReplayButton =
-  requireElement<HTMLButtonElement>(
-    "#results-replay-button",
-  );
-
-const resultsSongSelectButton =
-  requireElement<HTMLButtonElement>(
-    "#results-song-select-button",
-  );
 
 /* =========================================================
    DEVELOPER FILE CONTROLS
@@ -348,9 +276,9 @@ const libraryBuilder = new LibraryBuilder();
    ========================================================= */
 
 let loadedSimfile: StepManiaSimfile | null = null;
-let selectedChart: StepManiaChart | null = null;
-
 let loadedLibrary: SongLibrary | null = null;
+
+let gameplayController: GameplayController;
 
 const gameLoop = new GameLoop({
   input,
@@ -361,8 +289,8 @@ const gameLoop = new GameLoop({
   viewManager,
   gameDebugPanel,
   cameraTrackingDebugPanel,
-  onGameFinished: showResults,
-  onGameStatusChanged: updateButtonState,
+  onGameFinished: () => gameplayController.showResults(),
+  onGameStatusChanged: () => gameplayController.updateButtonState(),
 });
 
 /* =========================================================
@@ -397,46 +325,28 @@ songSelectionController = new SongSelectionController(
   libraryView,
   {
     onPlaySong(song: SongEntry, chart: StepManiaChart): void {
-      void handlePlaySelectedSong(song, chart);
+      void gameplayController.launchLibrarySong(song, chart);
     },
   },
 );
 
 songSelectionController.initialize();
 
-/* =========================================================
-   GAME BUTTON STATE
-   ========================================================= */
+gameplayController = new GameplayController({
+  game,
+  audioClock,
+  gameLoop,
+  viewManager,
+  runtimeChartBuilder,
+  navGameButton,
+  callbacks: {
+    closeSongDialog: () => songSelectionController.closeDialog(),
+    hasLoadedLibrary: () => loadedLibrary !== null,
+    hasSelectedPack: () => libraryView.getSelectedPack() !== null,
+  },
+});
 
-function updateButtonState(): void {
-  const gameStatus =
-    game.getState().status;
-
-  const canPlay =
-    audioClock.hasAudio() &&
-    game.hasChart();
-
-  startButton.disabled =
-    !canPlay ||
-    gameStatus === "playing" ||
-    gameStatus === "paused";
-
-  pauseButton.disabled =
-    !canPlay ||
-    gameStatus === "idle" ||
-    gameStatus === "finished";
-
-  restartButton.disabled = !canPlay;
-
-  pauseButton.textContent =
-    gameStatus === "paused"
-      ? "Resume"
-      : "Pause";
-
-  navGameButton.disabled = !canPlay;
-
-  gameLoop.requestRender();
-}
+gameplayController.initialize();
 
 /* =========================================================
    DEVELOPER AUDIO LOADING
@@ -459,20 +369,12 @@ async function handleAudioSelection(): Promise<void> {
     `Loading ${file.name}...`;
 
   try {
-    await audioClock.loadFile(file);
-
-    audioFileStatus.textContent =
-      `${file.name} — ` +
-      formatTime(
-        audioClock.getDurationSeconds(),
-      );
-
-    game.reset();
+    await gameplayController.loadDeveloperAudio(file);
   } catch (error) {
-    reportAudioError(error);
+    gameplayController.reportAudioError(error);
   } finally {
     audioFileInput.disabled = false;
-    updateButtonState();
+    gameplayController.updateButtonState();
   }
 }
 
@@ -508,7 +410,6 @@ async function handleSimfileSelection(): Promise<void> {
     }
 
     loadedSimfile = simfile;
-    selectedChart = null;
 
     populateDeveloperChartSelect(
       simfile,
@@ -522,8 +423,7 @@ async function handleSimfileSelection(): Promise<void> {
       `${simfile.charts.length} ` +
       "difficulties available";
 
-    game.reset();
-    audioClock.stop();
+    gameplayController.stopForSimfileChange();
   } catch (error) {
     console.error(error);
 
@@ -535,7 +435,6 @@ async function handleSimfileSelection(): Promise<void> {
         : "Could not parse the .sm file.";
   } finally {
     simfileInput.disabled = false;
-    updateButtonState();
   }
 }
 
@@ -576,7 +475,6 @@ function populateDeveloperChartSelect(
 
 function clearLoadedSimfile(): void {
   loadedSimfile = null;
-  selectedChart = null;
 
   chartSelect.replaceChildren();
 
@@ -596,14 +494,12 @@ function clearLoadedSimfile(): void {
   chartStatus.textContent =
     "No chart selected";
 
-  game.reset();
+  gameplayController.resetGame();
 }
 
 function handleChartSelection(): void {
   if (!loadedSimfile) {
-    selectedChart = null;
-    game.reset();
-    updateButtonState();
+    gameplayController.resetGame();
     return;
   }
 
@@ -614,13 +510,11 @@ function handleChartSelection(): void {
     );
 
   if (!Number.isInteger(selectedIndex)) {
-    selectedChart = null;
 
     chartStatus.textContent =
       "No chart selected";
 
-    game.reset();
-    updateButtonState();
+    gameplayController.resetGame();
 
     return;
   }
@@ -629,24 +523,21 @@ function handleChartSelection(): void {
     loadedSimfile.charts[selectedIndex];
 
   if (!chart) {
-    selectedChart = null;
 
     chartStatus.textContent =
       "Selected chart could not be found";
 
-    game.reset();
-    updateButtonState();
+    gameplayController.resetGame();
 
     return;
   }
 
   try {
-    loadGameChart(
+    gameplayController.loadChart(
       loadedSimfile,
       chart,
     );
 
-    selectedChart = chart;
 
     chartStatus.textContent =
       `${chart.difficulty} — ` +
@@ -655,8 +546,7 @@ function handleChartSelection(): void {
   } catch (error) {
     console.error(error);
 
-    selectedChart = null;
-    game.reset();
+    gameplayController.resetGame();
 
     chartStatus.textContent =
       error instanceof Error
@@ -664,7 +554,6 @@ function handleChartSelection(): void {
         : "Could not build the chart.";
   }
 
-  updateButtonState();
 }
 
 /* =========================================================
@@ -759,265 +648,6 @@ async function handleLibraryFolderSelection(): Promise<void> {
 }
 
 /* =========================================================
-   LIBRARY SONG LAUNCH
-   ========================================================= */
-
-async function handlePlaySelectedSong(
-  song: SongEntry,
-  chart: StepManiaChart,
-): Promise<void> {
-  if (!song.audioFile) {
-    libraryImportStatus.textContent =
-      `${song.title} is missing its audio file.`;
-
-    return;
-  }
-
-  try {
-    audioClock.stop();
-
-    await audioClock.loadFile(
-      song.audioFile,
-    );
-
-    loadGameChart(
-      song.simfile,
-      chart,
-    );
-
-    loadedSimfile = song.simfile;
-    selectedChart = chart;
-
-    gameplayTitle.textContent =
-      song.title;
-
-    gameplaySongArtist.textContent =
-      `${song.artist} · ${chart.difficulty} ` +
-      `· Meter ${chart.meter}`;
-
-    audioFileStatus.textContent =
-      `${song.audioFile.name} — ` +
-      formatTime(
-        audioClock.getDurationSeconds(),
-      );
-
-    viewManager.show("gameplay");
-
-    game.start();
-    gameLoop.syncGameStatus();
-
-    await audioClock.playFromStart();
-
-    updateButtonState();
-  } catch (error) {
-    game.reset();
-    reportAudioError(error);
-
-    viewManager.show(
-      "song-selection",
-    );
-  }
-}
-
-/* =========================================================
-   SHARED CHART LOADING
-   ========================================================= */
-
-function loadGameChart(
-  simfile: StepManiaSimfile,
-  chart: StepManiaChart,
-): void {
-  const runtimeNotes =
-    runtimeChartBuilder.build(
-      simfile,
-      chart,
-    );
-
-  if (runtimeNotes.length === 0) {
-    throw new Error(
-      "The selected chart has no supported tap notes.",
-    );
-  }
-
-  game.loadChart(
-    runtimeNotes.map((note) => ({
-      lane: note.lane,
-      hitTimeSeconds:
-        note.hitTimeSeconds,
-    })),
-  );
-
-  console.log(
-    "Loaded runtime chart:",
-    runtimeNotes,
-  );
-}
-
-/* =========================================================
-   GAMEPLAY CONTROLS
-   ========================================================= */
-
-async function handleStart(): Promise<void> {
-  if (!game.hasChart()) {
-    chartStatus.textContent =
-      "Select a chart before starting.";
-
-    return;
-  }
-
-  if (!audioClock.hasAudio()) {
-    audioFileStatus.textContent =
-      "Load the song audio before starting.";
-
-    return;
-  }
-
-  try {
-    game.start();
-    gameLoop.syncGameStatus();
-
-    await audioClock.playFromStart();
-  } catch (error) {
-    game.pause();
-    reportAudioError(error);
-  }
-}
-
-async function handlePauseToggle(): Promise<void> {
-  try {
-    const status =
-      game.getState().status;
-
-    if (status === "playing") {
-      await audioClock.pause();
-      game.pause();
-      return;
-    }
-
-    if (status === "paused") {
-      await audioClock.resume();
-      game.resume();
-    }
-  } catch (error) {
-    reportAudioError(error);
-  }
-}
-
-async function handleRestart(): Promise<void> {
-  try {
-    game.restart();
-    gameLoop.syncGameStatus();
-
-    await audioClock.restart();
-  } catch (error) {
-    game.pause();
-    reportAudioError(error);
-  }
-}
-
-function returnToSongSelection(): void {
-  /*
-   * End the current play session, but do not clear the imported
-   * library, selected pack, or selected song.
-   */
-  audioClock.stop();
-  game.reset();
-
-  gameLoop.syncGameStatus();
-
-  songSelectionController.closeDialog();
-
-  /*
-   * Prefer returning to the current pack's song list.
-   */
-  if (libraryView.getSelectedPack()) {
-    viewManager.show(
-      "song-selection",
-    );
-
-    return;
-  }
-
-  /*
-   * A library exists, but no pack is currently selected.
-   */
-  if (loadedLibrary) {
-    viewManager.show(
-      "pack-selection",
-    );
-
-    return;
-  }
-
-  viewManager.show(
-    "library-import",
-  );
-}
-
-/* =========================================================
-   RESULTS
-   ========================================================= */
-
-function showResults(): void {
-  const score =
-    game.getState().score;
-
-  resultsScoreValue.textContent =
-    score.score.toLocaleString();
-
-  resultsPerfectCount.textContent =
-    score.perfectCount.toString();
-
-  resultsGreatCount.textContent =
-    score.greatCount.toString();
-
-  resultsGoodCount.textContent =
-    score.goodCount.toString();
-
-  resultsMissCount.textContent =
-    score.missCount.toString();
-
-  resultsMaxCombo.textContent =
-    score.maxCombo.toString();
-
-  audioClock.stop();
-
-  viewManager.show("results");
-}
-
-/* =========================================================
-   UI HELPERS
-   ========================================================= */
-
-function formatTime(
-  totalSeconds: number,
-): string {
-  const minutes =
-    Math.floor(totalSeconds / 60);
-
-  const seconds =
-    Math.floor(totalSeconds % 60);
-
-  return (
-    `${minutes}:` +
-    seconds
-      .toString()
-      .padStart(2, "0")
-  );
-}
-
-function reportAudioError(
-  error: unknown,
-): void {
-  console.error(error);
-
-  audioFileStatus.textContent =
-    error instanceof Error
-      ? error.message
-      : "An audio error occurred.";
-}
-
-/* =========================================================
    VIEW NAVIGATION
    ========================================================= */
 
@@ -1069,6 +699,7 @@ function cleanUp(): void {
   gameLoop.stop();
 
   cameraController.destroy();
+  gameplayController.destroy();
   input.destroy();
   audioClock.destroy();
 
@@ -1125,27 +756,6 @@ audioFileInput.addEventListener(
   },
 );
 
-startButton.addEventListener(
-  "click",
-  () => {
-    void handleStart();
-  },
-);
-
-pauseButton.addEventListener(
-  "click",
-  () => {
-    void handlePauseToggle();
-  },
-);
-
-restartButton.addEventListener(
-  "click",
-  () => {
-    void handleRestart();
-  },
-);
-
 backToPacksButton.addEventListener(
   "click",
   () => {
@@ -1153,48 +763,6 @@ backToPacksButton.addEventListener(
 
     viewManager.show(
       "pack-selection",
-    );
-  },
-);
-
-navGameButton.addEventListener(
-  "click",
-  () => {
-    if (
-      game.hasChart() &&
-      audioClock.hasAudio()
-    ) {
-      viewManager.show(
-        "gameplay",
-      );
-    }
-  },
-);
-
-exitGameButton.addEventListener(
-  "click",
-  returnToSongSelection,
-);
-
-resultsReplayButton.addEventListener(
-  "click",
-  () => {
-    viewManager.show(
-      "gameplay",
-    );
-
-    void handleRestart();
-  },
-);
-
-resultsSongSelectButton.addEventListener(
-  "click",
-  () => {
-    game.reset();
-    audioClock.stop();
-
-    viewManager.show(
-      "song-selection",
     );
   },
 );
@@ -1260,7 +828,6 @@ playfieldWidthInput.addEventListener(
    ========================================================= */
 
 cameraController.initialize();
-updateButtonState();
 
 viewManager.show(
   "library-import",
