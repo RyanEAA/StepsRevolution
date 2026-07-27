@@ -71,10 +71,7 @@ export class LibraryView {
 
     public clearSelectedSong(): void {
         this.selectedSongId = null;
-
-        if (this.selectedPack) {
-            this.renderSongs(this.selectedPack);
-        }
+        this.updateSongSelectionStyles();
     }
 
     /**
@@ -278,10 +275,7 @@ export class LibraryView {
             summaryButton.addEventListener(
                 "click",
                 () => {
-                    this.selectSong(
-                        pack,
-                        song,
-                    );
+                    this.selectSong(song);
                 },
             );
 
@@ -289,19 +283,29 @@ export class LibraryView {
         }
     }
 
-    private selectSong(
-        pack: SongPack,
-        song: SongEntry,
-    ): void {
+    private selectSong(song: SongEntry): void {
         this.selectedSongId = song.id;
-
-        /*
-         * Re-rendering only changes the selected highlight. Card sizes
-         * remain unchanged, so the grid does not jump or reflow.
-         */
-        this.renderSongs(pack);
-
+        this.updateSongSelectionStyles();
         this.callbacks.onSongSelected(song);
+    }
+
+    private updateSongSelectionStyles(): void {
+        for (const card of this.songContainer.querySelectorAll<HTMLElement>(".song-card")) {
+            const isSelected = card.dataset.songId === this.selectedSongId;
+
+            card.classList.toggle(
+                "song-card--selected",
+                isSelected,
+            );
+
+            const summaryButton =
+                card.querySelector<HTMLButtonElement>(".song-card__summary");
+
+            summaryButton?.setAttribute(
+                "aria-pressed",
+                isSelected ? "true" : "false",
+            );
+        }
     }
 
     private createArtwork(

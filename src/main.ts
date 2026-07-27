@@ -12,7 +12,6 @@ import { KeyboardInput } from "./input/KeyboardInput";
 import { CanvasRenderer } from "./rendering/CanvasRenderer";
 import { RuntimeChartBuilder } from "./stepmania/RuntimeChartBuilder";
 import { SimfileParser } from "./stepmania/SimfileParser";
-import { SongPreviewPlayer } from "./audio/SongPreviewPlayer";
 import type {
   StepManiaChart,
   StepManiaSimfile,
@@ -28,6 +27,8 @@ import { GameDebugPanel } from "./ui/GameDebugPanel";
 import { CameraTrackingDebugPanel } from "./ui/CameraTrackingDebugPanel";
 import { GameLoop } from "./loop/GameLoop";
 import { CameraController } from "./controllers/CameraController";
+import { SongSelectionController } from "./controllers/SongSelectionController";
+import { SongDialogView } from "./ui/SongDialogView";
 
 /* ========================================================
     GLOBAL CONSTANTS
@@ -301,11 +302,6 @@ const viewManager = new ViewManager({
   results: resultsView,
 });
 
-/* =========================================================
-    SONGPREVIEW PLAYER
-    ========================================================= */
-const songPreviewPlayer = new SongPreviewPlayer();
-
 const keyboardInput = new KeyboardInput();
 const cameraManager = new CameraManager(cameraPreview);
 const cameraInput = new CameraFootInput(
@@ -355,8 +351,6 @@ let loadedSimfile: StepManiaSimfile | null = null;
 let selectedChart: StepManiaChart | null = null;
 
 let loadedLibrary: SongLibrary | null = null;
-let selectedLibrarySong: SongEntry | null = null;
-let selectedLibraryChart: StepManiaChart | null = null;
 
 const gameLoop = new GameLoop({
   input,
@@ -372,225 +366,12 @@ const gameLoop = new GameLoop({
 });
 
 /* =========================================================
-    SELECTED SONG DIALOG
-    ========================================================= */
-const selectedSongDialog =
-  requireElement<HTMLDialogElement>(
-    "#selected-song-dialog",
-  );
-
-const closeSongDialogButton =
-  requireElement<HTMLButtonElement>(
-    "#close-song-dialog-button",
-  );
-
-const selectedSongImage =
-  requireElement<HTMLImageElement>(
-    "#selected-song-image",
-  );
-
-const selectedSongTitle =
-  requireElement<HTMLElement>(
-    "#selected-song-title",
-  );
-
-const selectedSongArtist =
-  requireElement<HTMLElement>(
-    "#selected-song-artist",
-  );
-
-const selectedSongBpm =
-  requireElement<HTMLElement>(
-    "#selected-song-bpm",
-  );
-
-const selectedSongPack =
-  requireElement<HTMLElement>(
-    "#selected-song-pack",
-  );
-
-const selectedSongPreviewStatus =
-  requireElement<HTMLElement>(
-    "#selected-song-preview-status",
-  );
-
-const libraryDifficultyList =
-  document.querySelector<HTMLElement>(
-    "#library-difficulty-list",
-  )!;
-
-const playSelectedSongButton =
-  document.querySelector<HTMLButtonElement>(
-    "#play-selected-song-button",
-  )!;
-
-playSelectedSongButton.addEventListener(
-  "click",
-  () => {
-    void handlePlaySelectedSong();
-  },
-);
-
-/* =========================================================
-   LIBRARY VIEW
+   LIBRARY / SONG SELECTION
    ========================================================= */
 
-function populateLibraryDifficultyList(
-  song: SongEntry,
-): void {
-  libraryDifficultyList.replaceChildren();
+const songDialogView = new SongDialogView();
 
-  selectedLibraryChart = null;
-  playSelectedSongButton.disabled = true;
-
-  for (const chart of song.simfile.charts) {
-    const button =
-      document.createElement("button");
-
-    button.type = "button";
-    button.className =
-      "difficulty-button";
-
-    const name =
-      document.createElement("span");
-
-    name.className =
-      "difficulty-button__name";
-
-    name.textContent =
-      chart.difficulty;
-
-    const meter =
-      document.createElement("strong");
-
-    meter.className =
-      "difficulty-button__meter";
-
-    meter.textContent =
-      chart.meter.toString();
-
-    const noteCount =
-      document.createElement("small");
-
-    noteCount.textContent =
-      `${chart.notes.length} taps`;
-
-    button.append(
-      name,
-      meter,
-      noteCount,
-    );
-
-    button.addEventListener(
-      "click",
-      () => {
-        selectedLibraryChart =
-          chart;
-
-        for (
-          const existingButton of
-          libraryDifficultyList.querySelectorAll(
-            ".difficulty-button",
-          )
-        ) {
-          existingButton.classList.remove(
-            "difficulty-button--selected",
-          );
-        }
-
-        button.classList.add(
-          "difficulty-button--selected",
-        );
-
-        playSelectedSongButton.disabled =
-          song.audioFile === null;
-      },
-    );
-
-    libraryDifficultyList.append(
-      button,
-    );
-  }
-}
-
-function openSelectedSongDialog(): void {
-  if (!selectedSongDialog.open) {
-    selectedSongImage.hidden = false;
-    selectedSongDialog.showModal();
-  }
-}
-
-function closeSelectedSongDialog(
-  clearSelection = false,
-): void {
-  songPreviewPlayer.stop();
-
-  if (selectedSongDialog.open) {
-    selectedSongDialog.close();
-  }
-
-  selectedSongPreviewStatus.textContent =
-    "Preview stopped";
-
-  if (clearSelection) {
-    selectedLibrarySong = null;
-    selectedLibraryChart = null;
-
-    libraryView.clearSelectedSong();
-  }
-}
-
-function handleLibrarySongSelection(
-  song: SongEntry,
-): void {
-  songPreviewPlayer.stop();
-
-  selectedLibrarySong = song;
-  selectedLibraryChart = null;
-
-  selectedSongTitle.textContent =
-    song.title;
-
-  selectedSongArtist.textContent =
-    song.artist;
-
-  selectedSongPack.textContent =
-    `Pack: ${song.packName}`;
-
-  selectedSongBpm.textContent =
-    formatBpmRange(
-      song.simfile.bpmSegments.map(
-        (segment) => segment.bpm,
-      ),
-    );
-
-  if (song.bannerUrl) {
-    selectedSongImage.src =
-      song.bannerUrl;
-
-    selectedSongImage.alt =
-      `${song.title} banner`;
-
-  } else {
-    selectedSongImage.removeAttribute(
-      "src",
-    );
-
-    selectedSongImage.alt = "";
-    selectedSongImage.hidden = true;
-  }
-
-  populateLibraryDifficultyList(song);
-
-  selectedSongPreviewStatus.textContent =
-    song.audioFile
-      ? "♪ Preview loading..."
-      : "Preview unavailable";
-
-  openSelectedSongDialog();
-
-  void playSongPreview(song);
-}
+let songSelectionController: SongSelectionController;
 
 const libraryView = new LibraryView(
   packCardContainer,
@@ -598,14 +379,7 @@ const libraryView = new LibraryView(
   songSectionTitle,
   {
     onPackSelected(pack: SongPack): void {
-      songPreviewPlayer.stop();
-
-      if (selectedSongDialog.open) {
-        selectedSongDialog.close();
-      }
-
-      selectedLibrarySong = null;
-      selectedLibraryChart = null;
+      songSelectionController.handlePackSelected();
 
       console.log("Selected pack:", pack);
 
@@ -613,79 +387,23 @@ const libraryView = new LibraryView(
     },
 
     onSongSelected(song: SongEntry): void {
-      handleLibrarySongSelection(song);
+      songSelectionController.selectSong(song);
     },
   },
 );
 
-async function playSongPreview(
-  song: SongEntry,
-): Promise<void> {
-  songPreviewPlayer.stop();
+songSelectionController = new SongSelectionController(
+  songDialogView,
+  libraryView,
+  {
+    onPlaySong(song: SongEntry, chart: StepManiaChart): void {
+      void handlePlaySelectedSong(song, chart);
+    },
+  },
+);
 
-  if (!song.audioFile) {
-    selectedSongPreviewStatus.textContent =
-      "Preview unavailable";
+songSelectionController.initialize();
 
-    return;
-  }
-
-  const declaredStart =
-    song.simfile.sampleStartSeconds;
-
-  const declaredLength =
-    song.simfile.sampleLengthSeconds;
-
-  const previewStartSeconds =
-    declaredStart > 0
-      ? declaredStart
-      : 20;
-
-  const previewDurationSeconds =
-    declaredLength > 0
-      ? Math.min(
-        declaredLength,
-        15,
-      )
-      : 12;
-
-  try {
-    await songPreviewPlayer.play(
-      song.audioFile,
-      {
-        startSeconds:
-          previewStartSeconds,
-
-        durationSeconds:
-          previewDurationSeconds,
-      },
-    );
-
-    /*
-     * The user may have selected another song while this preview was
-     * loading. Avoid updating the status for the wrong song.
-     */
-    if (
-      selectedLibrarySong?.id === song.id &&
-      selectedSongDialog.open
-    ) {
-      selectedSongPreviewStatus.textContent =
-        "♪ Preview playing";
-    }
-  } catch (error) {
-    console.error(
-      "Could not play song preview:",
-      error,
-    );
-
-    if (
-      selectedLibrarySong?.id === song.id
-    ) {
-      selectedSongPreviewStatus.textContent =
-        "Preview could not be played";
-    }
-  }
-}
 /* =========================================================
    GAME BUTTON STATE
    ========================================================= */
@@ -997,9 +715,7 @@ async function handleLibraryFolderSelection(): Promise<void> {
 
     loadedLibrary = newLibrary;
 
-    selectedLibrarySong = null;
-    selectedLibraryChart = null;
-
+    songSelectionController.clearSelection();
     libraryView.setLibrary(newLibrary);
 
     libraryImportStatus.textContent =
@@ -1046,24 +762,16 @@ async function handleLibraryFolderSelection(): Promise<void> {
    LIBRARY SONG LAUNCH
    ========================================================= */
 
-async function handlePlaySelectedSong(): Promise<void> {
-
-  const song = selectedLibrarySong;
-  const chart = selectedLibraryChart;
-
-  if (!song || !chart) {
-    return;
-  }
-
+async function handlePlaySelectedSong(
+  song: SongEntry,
+  chart: StepManiaChart,
+): Promise<void> {
   if (!song.audioFile) {
     libraryImportStatus.textContent =
       `${song.title} is missing its audio file.`;
 
     return;
   }
-
-  closeSelectedSongDialog();
-
 
   try {
     audioClock.stop();
@@ -1217,11 +925,7 @@ function returnToSongSelection(): void {
 
   gameLoop.syncGameStatus();
 
-  songPreviewPlayer.stop();
-
-  if (selectedSongDialog.open) {
-    selectedSongDialog.close();
-  }
+  songSelectionController.closeDialog();
 
   /*
    * Prefer returning to the current pack's song list.
@@ -1284,39 +988,6 @@ function showResults(): void {
 /* =========================================================
    UI HELPERS
    ========================================================= */
-
-function formatBpmRange(
-  bpmValues: readonly number[],
-): string {
-  const validValues =
-    bpmValues.filter(
-      (bpm) =>
-        Number.isFinite(bpm) &&
-        bpm > 0,
-    );
-
-  if (validValues.length === 0) {
-    return "BPM —";
-  }
-
-  const minimum =
-    Math.min(...validValues);
-
-  const maximum =
-    Math.max(...validValues);
-
-  if (
-    Math.abs(maximum - minimum) <
-    0.001
-  ) {
-    return `BPM ${minimum.toFixed(0)}`;
-  }
-
-  return (
-    `BPM ${minimum.toFixed(0)}` +
-    `–${maximum.toFixed(0)}`
-  );
-}
 
 function formatTime(
   totalSeconds: number,
@@ -1419,7 +1090,7 @@ function cleanUp(): void {
     cleanUp,
   );
 
-  songPreviewPlayer.destroy();
+  songSelectionController.destroy();
 
   gameContainerResizeObserver.disconnect();
 }
@@ -1478,10 +1149,7 @@ restartButton.addEventListener(
 backToPacksButton.addEventListener(
   "click",
   () => {
-    closeSelectedSongDialog(true);
-
-    selectedLibrarySong = null;
-    selectedLibraryChart = null;
+    songSelectionController.clearSelection();
 
     viewManager.show(
       "pack-selection",
@@ -1541,40 +1209,10 @@ window.addEventListener(
   cleanUp,
 );
 
-closeSongDialogButton.addEventListener(
-  "click",
-  () => {
-    closeSelectedSongDialog();
-  },
-);
-
-selectedSongDialog.addEventListener(
-  "cancel",
-  (event) => {
-    /*
-     * Prevent the browser from closing it before our preview cleanup
-     * runs.
-     */
-    event.preventDefault();
-    closeSelectedSongDialog();
-  },
-);
-
-selectedSongDialog.addEventListener(
-  "click",
-  (event) => {
-    if (
-      event.target === selectedSongDialog
-    ) {
-      closeSelectedSongDialog();
-    }
-  },
-);
-
 importAnotherLibraryButton.addEventListener(
   "click",
   () => {
-    closeSelectedSongDialog(true);
+    songSelectionController.clearSelection();
     libraryView.collapseExpandedSong();
 
     viewManager.show(
@@ -1586,7 +1224,7 @@ importAnotherLibraryButton.addEventListener(
 navLibraryButton.addEventListener(
   "click",
   () => {
-    closeSelectedSongDialog();
+    songSelectionController.closeDialog();
 
     if (loadedLibrary) {
       viewManager.show(
