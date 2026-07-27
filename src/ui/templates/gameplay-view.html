@@ -1,0 +1,275 @@
+<section id="gameplay-view" class="app-view gameplay-view" aria-labelledby="gameplay-title" hidden>
+      <header class="gameplay-header">
+        <div class="gameplay-song-info">
+          <button id="exit-game-button" type="button" class="secondary-button">
+            ← Song selection
+          </button>
+
+          <div>
+            <p class="eyebrow">
+              Now playing
+            </p>
+
+            <h2 id="gameplay-title">
+              Camera Rhythm Game
+            </h2>
+
+            <p id="gameplay-song-artist">
+              Select a song from the library
+            </p>
+          </div>
+        </div>
+
+        <div class="gameplay-controls">
+          <div class="controls">
+
+            <div class="control-group">
+              <span class="control-group__label">
+                Left foot
+              </span>
+
+              <kbd>A</kbd>
+              <span>/</span>
+              <kbd>D</kbd>
+            </div>
+
+            <div class="control-group">
+              <span class="control-group__label">
+                Right foot
+              </span>
+
+              <kbd>←</kbd>
+              <span>/</span>
+              <kbd>→</kbd>
+            </div>
+
+          </div>
+
+          <label class="playfield-width-control">
+            <span>Playfield width</span>
+
+            <div class="playfield-width-control__input">
+              <input id="playfield-width-input" type="range" min="400" max="1180" step="10" value="1180" />
+
+              <output id="playfield-width-value" for="playfield-width-input">
+                1180 px
+              </output>
+            </div>
+          </label>
+
+          <div class="game-buttons">
+            <button id="start-button" type="button">
+              Start
+            </button>
+
+            <button id="pause-button" type="button">
+              Pause
+            </button>
+
+            <button id="restart-button" type="button">
+              Restart
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <details class="camera-setup-panel">
+        <summary>Camera setup</summary>
+
+        <div class="camera-setup-panel__content">
+          <div class="camera-controls-grid">
+
+            <label class="camera-control">
+              <span>Input mode</span>
+              <select id="input-mode-select">
+                <option value="keyboard">Keyboard</option>
+                <option value="camera">Camera</option>
+              </select>
+            </label>
+
+            <label class="camera-control">
+              <span>Camera</span>
+              <select id="camera-device-select" disabled>
+                <option value="">Enable camera to list devices</option>
+              </select>
+            </label>
+
+            <label class="camera-control camera-control--checkbox">
+              <input id="camera-mirror-toggle" type="checkbox" checked />
+              <span>Mirror preview</span>
+            </label>
+
+            <label class="camera-control">
+              <span>Visibility threshold</span>
+
+              <div class="camera-range-control">
+                <input id="camera-visibility-threshold" type="range" min="0" max="1" step="0.05" value="0.5" />
+
+                <output id="camera-visibility-threshold-value" for="camera-visibility-threshold">
+                  0.50
+                </output>
+              </div>
+            </label>
+
+            <label class="camera-control">
+              <span>Inference FPS</span>
+
+              <div class="camera-range-control">
+                <input id="camera-inference-fps" type="range" min="5" max="30" step="1" value="15" />
+
+                <output id="camera-inference-fps-value" for="camera-inference-fps">
+                  15
+                </output>
+              </div>
+            </label>
+
+          </div>
+
+          <div class="camera-actions">
+            <button id="camera-enable-button" type="button" class="primary-button">
+              Enable camera
+            </button>
+
+            <button id="camera-disable-button" type="button" class="secondary-button" disabled>
+              Disable camera
+            </button>
+          </div>
+
+          <p id="camera-status" class="camera-status" aria-live="polite">
+            Camera is off. Keyboard input is active.
+          </p>
+
+          <div class="camera-tracking-debug">
+            <div>
+              <span>Left raw</span>
+              <strong id="camera-left-raw-position">—</strong>
+            </div>
+
+            <div>
+              <span>Right raw</span>
+              <strong id="camera-right-raw-position">—</strong>
+            </div>
+
+            <div>
+              <span>Left game X</span>
+              <strong id="camera-left-display-position">—</strong>
+            </div>
+
+            <div>
+              <span>Right game X</span>
+              <strong id="camera-right-display-position">—</strong>
+            </div>
+
+            <div>
+              <span>Left confidence</span>
+              <strong id="camera-left-confidence">—</strong>
+            </div>
+
+            <div>
+              <span>Right confidence</span>
+              <strong id="camera-right-confidence">—</strong>
+            </div>
+
+            <div>
+              <span>Left visible</span>
+              <strong id="camera-left-visible">No</strong>
+            </div>
+
+            <div>
+              <span>Right visible</span>
+              <strong id="camera-right-visible">No</strong>
+            </div>
+          </div>
+
+          <p class="camera-note">
+            Raw pose positions are not calibrated or smoothed yet.
+            Keep both ankles, heels, and toes visible in the frame.
+          </p>
+        </div>
+      </details>
+
+      <div class="gameplay-stage">
+
+        <div class="game-container">
+
+          <div class="camera-preview-shell">
+            <video id="camera-preview" class="camera-preview" autoplay muted playsinline></video>
+
+            <canvas id="pose-overlay-canvas" class="pose-overlay-canvas" aria-hidden="true"></canvas>
+          </div>
+
+          <canvas id="game-canvas" aria-label="Rhythm game playfield"></canvas>
+
+        </div>
+
+        <aside id="game-debug-panel" class="game-debug-panel">
+          <div class="game-debug-panel__header">
+            <strong>Debug</strong>
+
+            <button id="debug-hide-button" type="button" class="game-debug-panel__close"
+              aria-label="Hide debug information">
+              ×
+            </button>
+          </div>
+
+          <dl class="game-debug-values">
+            <div>
+              <dt>Left X</dt>
+              <dd id="debug-left-x">—</dd>
+            </div>
+
+            <div>
+              <dt>Right X</dt>
+              <dd id="debug-right-x">—</dd>
+            </div>
+
+            <div>
+              <dt>Left lane</dt>
+              <dd id="debug-left-lane">—</dd>
+            </div>
+
+            <div>
+              <dt>Right lane</dt>
+              <dd id="debug-right-lane">—</dd>
+            </div>
+
+            <div>
+              <dt>Time</dt>
+              <dd id="debug-game-time">—</dd>
+            </div>
+
+            <div>
+              <dt>Status</dt>
+              <dd id="debug-game-status">—</dd>
+            </div>
+
+            <div>
+              <dt>FPS</dt>
+              <dd id="debug-fps">—</dd>
+            </div>
+          </dl>
+        </aside>
+
+      </div>
+
+      <div class="game-debug-toggle-row">
+        <button id="debug-toggle-button" type="button" class="secondary-button">
+          Hide debug
+        </button>
+      </div>
+
+      <footer class="gameplay-footer">
+        <p>
+          Use
+          <kbd>A</kbd>
+          and
+          <kbd>D</kbd>
+          for the left foot, and the left and right
+          arrow keys for the right foot.
+        </p>
+      </footer>
+    </section>
+
+    <!-- =====================================================
+         VIEW 5: RESULTS
+         ===================================================== -->

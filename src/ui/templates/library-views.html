@@ -1,0 +1,162 @@
+<section id="library-import-view" class="app-view" aria-labelledby="library-import-title">
+      <div class="view-heading">
+        <div>
+          <p class="eyebrow">StepMania library</p>
+
+          <h2 id="library-import-title">
+            Import your Songs directory
+          </h2>
+
+          <p class="view-description">
+            Select the global StepMania
+            <strong>Songs</strong> folder. The application
+            will scan its pack folders, song folders,
+            simfiles, audio, banners, and backgrounds.
+          </p>
+        </div>
+      </div>
+
+      <div class="library-import-panel">
+        <div class="library-import-panel__content">
+          <h3>Choose a StepMania folder</h3>
+
+          <p>
+            Expected directory structure:
+          </p>
+
+          <pre class="folder-example"><code>Songs/
+├── Pack One/
+│   ├── Song A/
+│   │   ├── Song A.sm
+│   │   ├── Song A.mp3
+│   │   └── Song A.png
+│   └── Song B/
+└── Pack Two/
+    └── Song C/</code></pre>
+        </div>
+
+        <label class="folder-import-button">
+          Import Songs directory
+
+          <input id="library-folder-input" type="file" webkitdirectory multiple />
+        </label>
+
+        <p id="library-import-status" class="import-status" aria-live="polite">
+          No song library imported
+        </p>
+      </div>
+
+      <!-- Temporary developer tools -->
+
+      <details class="developer-panel">
+        <summary>
+          Developer tools: load individual files
+        </summary>
+
+        <div class="developer-panel__content">
+
+          <div class="file-control">
+            <label for="simfile-input">
+              StepMania simfile
+            </label>
+
+            <input id="simfile-input" type="file" accept=".sm,text/plain" />
+
+            <span id="simfile-status" class="control-status">
+              No .sm file loaded
+            </span>
+          </div>
+
+          <div class="file-control">
+            <label for="chart-select">
+              Difficulty
+            </label>
+
+            <select id="chart-select" disabled>
+              <option value="">
+                Load a .sm file first
+              </option>
+            </select>
+
+            <span id="chart-status" class="control-status">
+              No chart selected
+            </span>
+          </div>
+
+          <div class="file-control">
+            <label for="audio-file-input">
+              Song audio
+            </label>
+
+            <input id="audio-file-input" type="file" accept="audio/*,.mp3,.ogg,.wav,.m4a,.aac" />
+
+            <span id="audio-file-status" class="control-status">
+              No audio loaded
+            </span>
+          </div>
+
+        </div>
+      </details>
+    </section>
+
+    <!-- =====================================================
+         VIEW 2: PACK SELECTION
+         ===================================================== -->
+
+    <section id="pack-selection-section" class="app-view library-section" aria-labelledby="pack-selection-title" hidden>
+      <div class="view-heading library-section__header">
+        <div>
+          <p class="eyebrow">Song library</p>
+
+          <h2 id="pack-selection-title">
+            Select a pack
+          </h2>
+
+          <p class="view-description">
+            Choose a song pack to browse its songs.
+          </p>
+        </div>
+
+        <button id="import-another-library-button" type="button" class="secondary-button">
+          Import another library
+        </button>
+      </div>
+
+      <div id="pack-card-container" class="library-grid pack-grid" aria-live="polite"></div>
+    </section>
+
+    <!-- =====================================================
+         VIEW 3: SONG SELECTION
+         ===================================================== -->
+
+    <section id="song-selection-section" class="app-view library-section song-selection-view"
+      aria-labelledby="song-section-title" hidden>
+      <div class="view-heading library-section__header">
+        <button id="back-to-packs-button" type="button" class="secondary-button">
+          ← Packs
+        </button>
+
+        <div>
+          <p class="eyebrow">Song pack</p>
+
+          <h2 id="song-section-title">
+            Select a song
+          </h2>
+
+          <p class="view-description">
+            Select a song to hear a preview, choose a difficulty,
+            and begin playing.
+          </p>
+        </div>
+      </div>
+
+      <div class="song-browser">
+
+        <!-- Independently scrolling song list -->
+
+        <div class="song-browser__list">
+          <div id="song-card-container" class="library-grid song-grid" aria-live="polite"></div>
+        </div>
+
+      </div>
+    </section>

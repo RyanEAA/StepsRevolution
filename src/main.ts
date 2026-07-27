@@ -30,6 +30,9 @@ import { CameraController } from "./controllers/CameraController";
 import { SongSelectionController } from "./controllers/SongSelectionController";
 import { GameplayController } from "./controllers/GameplayController";
 import { SongDialogView } from "./ui/SongDialogView";
+import { renderAppShell } from "./ui/renderAppShell";
+
+renderAppShell();
 
 /* ========================================================
     GLOBAL CONSTANTS

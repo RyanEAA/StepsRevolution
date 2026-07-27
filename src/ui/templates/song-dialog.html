@@ -1,0 +1,44 @@
+<dialog id="selected-song-dialog" class="song-dialog">
+      <div class="song-dialog__content">
+        <button id="close-song-dialog-button" type="button" class="song-dialog__close" aria-label="Close song details">
+          ×
+        </button>
+
+        <div class="song-dialog__artwork">
+          <img id="selected-song-image" src="" alt="" hidden />
+        </div>
+
+        <div class="song-dialog__details">
+          <p class="eyebrow">Selected song</p>
+
+          <h3 id="selected-song-title">
+            No song selected
+          </h3>
+
+          <p id="selected-song-artist">
+            Unknown artist
+          </p>
+
+          <div class="selected-song-metadata">
+            <span id="selected-song-bpm">BPM —</span>
+            <span id="selected-song-pack">Pack —</span>
+          </div>
+
+          <p id="selected-song-preview-status" class="selected-song-preview-status">
+            Select a song to begin preview
+          </p>
+
+          <h4>Difficulty</h4>
+
+          <div id="library-difficulty-list" class="song-card__difficulty-list"></div>
+
+          <button id="play-selected-song-button" type="button" class="primary-button" disabled>
+            Play selected difficulty
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- =====================================================
+         VIEW 4: GAMEPLAY
+         ===================================================== -->
