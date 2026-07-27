@@ -1999,34 +1999,6 @@ backToPacksButton.addEventListener(
   },
 );
 
-importAnotherLibraryButton.addEventListener(
-  "click",
-  () => {
-    songPreviewPlayer.stop();
-    libraryView.collapseExpandedSong();
-    viewManager.show(
-      "library-import",
-    );
-  },
-);
-
-navLibraryButton.addEventListener(
-  "click",
-  () => {
-    songPreviewPlayer.stop();
-
-    if (loadedLibrary) {
-      viewManager.show(
-        "pack-selection",
-      );
-    } else {
-      viewManager.show(
-        "library-import",
-      );
-    }
-  },
-);
-
 navGameButton.addEventListener(
   "click",
   () => {
@@ -2113,6 +2085,7 @@ importAnotherLibraryButton.addEventListener(
   "click",
   () => {
     closeSelectedSongDialog(true);
+    libraryView.collapseExpandedSong();
 
     viewManager.show(
       "library-import",
