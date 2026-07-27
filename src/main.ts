@@ -24,6 +24,8 @@ import type {
 } from "./types/Library";
 
 import { LibraryView } from "./ui/LibraryView";
+import { GameDebugPanel } from "./ui/GameDebugPanel";
+import { CameraTrackingDebugPanel } from "./ui/CameraTrackingDebugPanel";
 
 /* ========================================================
     GLOBAL CONSTANTS
@@ -36,9 +38,6 @@ const DEFAULT_PLAYFIELD_WIDTH = 1180;
 const MIN_PLAYFIELD_WIDTH = 400;
 const MAX_PLAYFIELD_WIDTH = 1180;
 
-const DEBUG_VISIBLE_STORAGE_KEY =
-  "dance-vision.debug-visible";
-let debugVisible = true;
 
 /* =========================================================
    DOM HELPERS
@@ -58,6 +57,12 @@ function requireElement<T extends Element>(
   return element;
 }
 
+const gameDebugPanel =
+  new GameDebugPanel();
+
+const cameraTrackingDebugPanel =
+  new CameraTrackingDebugPanel();
+
 const gameContainer =
   requireElement<HTMLElement>(
     ".game-container",
@@ -73,55 +78,6 @@ const playfieldWidthValue =
     "#playfield-width-value",
   );
 
-const gameDebugPanel =
-  requireElement<HTMLElement>(
-    "#game-debug-panel",
-  );
-
-const debugToggleButton =
-  requireElement<HTMLButtonElement>(
-    "#debug-toggle-button",
-  );
-
-const debugHideButton =
-  requireElement<HTMLButtonElement>(
-    "#debug-hide-button",
-  );
-
-const debugLeftX =
-  requireElement<HTMLElement>(
-    "#debug-left-x",
-  );
-
-const debugRightX =
-  requireElement<HTMLElement>(
-    "#debug-right-x",
-  );
-
-const debugLeftLane =
-  requireElement<HTMLElement>(
-    "#debug-left-lane",
-  );
-
-const debugRightLane =
-  requireElement<HTMLElement>(
-    "#debug-right-lane",
-  );
-
-const debugGameTime =
-  requireElement<HTMLElement>(
-    "#debug-game-time",
-  );
-
-const debugGameStatus =
-  requireElement<HTMLElement>(
-    "#debug-game-status",
-  );
-
-const debugFps =
-  requireElement<HTMLElement>(
-    "#debug-fps",
-  );
 
 /* =========================================================
    MAIN VIEWS
@@ -302,86 +258,7 @@ const cameraInferenceFpsValue =
     "#camera-inference-fps-value",
   );
 
-const cameraLeftRawPosition =
-  requireElement<HTMLElement>(
-    "#camera-left-raw-position",
-  );
 
-const cameraRightRawPosition =
-  requireElement<HTMLElement>(
-    "#camera-right-raw-position",
-  );
-
-const cameraLeftDisplayPosition =
-  requireElement<HTMLElement>(
-    "#camera-left-display-position",
-  );
-
-const cameraRightDisplayPosition =
-  requireElement<HTMLElement>(
-    "#camera-right-display-position",
-  );
-
-const cameraLeftConfidence =
-  requireElement<HTMLElement>(
-    "#camera-left-confidence",
-  );
-
-const cameraRightConfidence =
-  requireElement<HTMLElement>(
-    "#camera-right-confidence",
-  );
-
-const cameraLeftVisible =
-  requireElement<HTMLElement>(
-    "#camera-left-visible",
-  );
-
-const cameraRightVisible =
-  requireElement<HTMLElement>(
-    "#camera-right-visible",
-  );
-
-function updateCameraTrackingDebug(): void {
-  const debug =
-    cameraInput.getDebugState();
-
-  cameraLeftRawPosition.textContent =
-    debug.leftVisible
-      ? debug.leftSourceX.toFixed(3)
-      : "—";
-
-  cameraRightRawPosition.textContent =
-    debug.rightVisible
-      ? debug.rightSourceX.toFixed(3)
-      : "—";
-
-  cameraLeftDisplayPosition.textContent =
-    debug.leftVisible
-      ? debug.leftDisplayX.toFixed(3)
-      : "—";
-
-  cameraRightDisplayPosition.textContent =
-    debug.rightVisible
-      ? debug.rightDisplayX.toFixed(3)
-      : "—";
-
-  cameraLeftConfidence.textContent =
-    debug.leftConfidence.toFixed(2);
-
-  cameraRightConfidence.textContent =
-    debug.rightConfidence.toFixed(2);
-
-  cameraLeftVisible.textContent =
-    debug.leftVisible
-      ? "Yes"
-      : "No";
-
-  cameraRightVisible.textContent =
-    debug.rightVisible
-      ? "Yes"
-      : "No";
-}
 
 cameraVisibilityThreshold.addEventListener(
   "input",
@@ -907,7 +784,10 @@ function gameLoop(
   const footState =
     input.getFootState();
 
-  updateCameraTrackingDebug();
+  cameraTrackingDebugPanel.update(
+    cameraInput.getDebugState(),
+    currentFrameTimeMs,
+  );
 
   const statusBeforeUpdate =
     game.getState().status;
@@ -936,9 +816,11 @@ function gameLoop(
     currentFramesPerSecond * 0.1;
 
   const gameState = game.getState();
-  updateGameDebugPanel(
+  gameDebugPanel.update(
     footState,
     gameState,
+    smoothedFramesPerSecond,
+    currentFrameTimeMs,
   );
 
   /*
@@ -1532,18 +1414,6 @@ function returnToSongSelection(): void {
   );
 }
 
-function positionToLane(
-  position: number,
-): number {
-  const lane =
-    Math.floor(position * 4);
-
-  return Math.min(
-    Math.max(lane, 0),
-    3,
-  );
-}
-
 /* =========================================================
    RESULTS
    ========================================================= */
@@ -1638,86 +1508,6 @@ function reportAudioError(
     error instanceof Error
       ? error.message
       : "An audio error occurred.";
-}
-
-function updateGameDebugPanel(
-  footState: FootState,
-  gameState: Readonly<GameState>,
-): void {
-  if (!debugVisible) {
-    return;
-  }
-
-  debugLeftX.textContent =
-    footState.leftVisible
-      ? footState.leftX.toFixed(3)
-      : "hidden";
-
-  debugRightX.textContent =
-    footState.rightVisible
-      ? footState.rightX.toFixed(3)
-      : "hidden";
-
-  debugLeftLane.textContent =
-    footState.leftVisible
-      ? positionToLane(
-        footState.leftX,
-      ).toString()
-      : "—";
-
-  debugRightLane.textContent =
-    footState.rightVisible
-      ? positionToLane(
-        footState.rightX,
-      ).toString()
-      : "—";
-
-  debugGameTime.textContent =
-    `${gameState.gameTimeSeconds.toFixed(3)} s`;
-
-  debugGameStatus.textContent =
-    gameState.status;
-
-  debugFps.textContent =
-    smoothedFramesPerSecond.toFixed(1);
-}
-
-function setDebugVisible(
-  visible: boolean,
-  persist = true,
-): void {
-  debugVisible = visible;
-
-  gameDebugPanel.hidden =
-    !visible;
-
-  debugToggleButton.textContent =
-    visible
-      ? "Hide debug"
-      : "Show debug";
-
-  debugToggleButton.setAttribute(
-    "aria-pressed",
-    visible
-      ? "true"
-      : "false",
-  );
-
-  if (persist) {
-    localStorage.setItem(
-      DEBUG_VISIBLE_STORAGE_KEY,
-      visible
-        ? "true"
-        : "false",
-    );
-  }
-}
-function loadDebugVisible(): boolean {
-  return (
-    localStorage.getItem(
-      DEBUG_VISIBLE_STORAGE_KEY,
-    ) !== "false"
-  );
 }
 
 /* =========================================================
@@ -1902,6 +1692,8 @@ function handleResize(): void {
 }
 
 function cleanUp(): void {
+  gameDebugPanel.destroy();
+
   cancelAnimationFrame(
     animationFrameId,
   );
@@ -2181,22 +1973,6 @@ playfieldWidthInput.addEventListener(
 );
 
 
-debugToggleButton.addEventListener(
-  "click",
-  () => {
-    setDebugVisible(
-      !debugVisible,
-    );
-  },
-);
-
-debugHideButton.addEventListener(
-  "click",
-  () => {
-    setDebugVisible(false);
-  },
-);
-
 /* =========================================================
    INITIALIZATION
    ========================================================= */
@@ -2246,10 +2022,7 @@ viewManager.show(
 animationFrameId =
   requestAnimationFrame(gameLoop);
 
-setDebugVisible(
-  loadDebugVisible(),
-  false,
-);
+gameDebugPanel.initialize();
 
 /* =========================================================
     GAME-CANVAS WIDTH FUNCTIONS
