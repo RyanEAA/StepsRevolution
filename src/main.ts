@@ -26,6 +26,7 @@ import type {
 import { LibraryView } from "./ui/LibraryView";
 import { GameDebugPanel } from "./ui/GameDebugPanel";
 import { CameraTrackingDebugPanel } from "./ui/CameraTrackingDebugPanel";
+import { GameLoop } from "./loop/GameLoop";
 
 /* ========================================================
     GLOBAL CONSTANTS
@@ -437,12 +438,18 @@ let loadedLibrary: SongLibrary | null = null;
 let selectedLibrarySong: SongEntry | null = null;
 let selectedLibraryChart: StepManiaChart | null = null;
 
-let previousFrameTimeMs = performance.now();
-let animationFrameId = 0;
-let smoothedFramesPerSecond = 60;
-
-let previousGameStatus =
-  game.getState().status;
+const gameLoop = new GameLoop({
+  input,
+  cameraInput,
+  game,
+  audioClock,
+  renderer,
+  viewManager,
+  gameDebugPanel,
+  cameraTrackingDebugPanel,
+  onGameFinished: showResults,
+  onFrameCompleted: updateButtonState,
+});
 
 /* =========================================================
     SELECTED SONG DIALOG
@@ -759,98 +766,6 @@ async function playSongPreview(
     }
   }
 }
-/* =========================================================
-   ANIMATION LOOP
-   ========================================================= */
-
-function gameLoop(
-  currentFrameTimeMs: number,
-): void {
-  const rawDeltaSeconds =
-    (currentFrameTimeMs -
-      previousFrameTimeMs) /
-    1000;
-
-  const deltaSeconds = Math.min(
-    rawDeltaSeconds,
-    0.1,
-  );
-
-  previousFrameTimeMs =
-    currentFrameTimeMs;
-
-  input.update(deltaSeconds);
-
-  const footState =
-    input.getFootState();
-
-  cameraTrackingDebugPanel.update(
-    cameraInput.getDebugState(),
-    currentFrameTimeMs,
-  );
-
-  const statusBeforeUpdate =
-    game.getState().status;
-
-  if (statusBeforeUpdate === "playing") {
-    game.update(
-      audioClock.getCurrentTimeSeconds(),
-      footState,
-    );
-  }
-
-  if (
-    audioClock.getStatus() === "finished" &&
-    game.getState().status === "playing"
-  ) {
-    game.pause();
-  }
-
-  const currentFramesPerSecond =
-    deltaSeconds > 0
-      ? 1 / deltaSeconds
-      : smoothedFramesPerSecond;
-
-  smoothedFramesPerSecond =
-    smoothedFramesPerSecond * 0.9 +
-    currentFramesPerSecond * 0.1;
-
-  const gameState = game.getState();
-  gameDebugPanel.update(
-    footState,
-    gameState,
-    smoothedFramesPerSecond,
-    currentFrameTimeMs,
-  );
-
-  /*
-   * Canvas rendering is only useful while the gameplay view is open.
-   * Avoiding unnecessary drawing also makes the menu views lighter.
-   */
-  if (viewManager.isShowing("gameplay")) {
-    renderer.render(
-      footState,
-      game.getVisibleNotes(),
-      gameState,
-    );
-  }
-
-  if (
-    previousGameStatus !== "finished" &&
-    gameState.status === "finished"
-  ) {
-    showResults();
-  }
-
-  previousGameStatus =
-    gameState.status;
-
-  updateButtonState();
-
-  animationFrameId =
-    requestAnimationFrame(gameLoop);
-}
-
 /* =========================================================
    GAME BUTTON STATE
    ========================================================= */
@@ -1259,7 +1174,7 @@ async function handlePlaySelectedSong(): Promise<void> {
     viewManager.show("gameplay");
 
     game.start();
-    previousGameStatus = "playing";
+    gameLoop.syncGameStatus();
 
     await audioClock.playFromStart();
 
@@ -1329,7 +1244,7 @@ async function handleStart(): Promise<void> {
 
   try {
     game.start();
-    previousGameStatus = "playing";
+    gameLoop.syncGameStatus();
 
     await audioClock.playFromStart();
   } catch (error) {
@@ -1361,7 +1276,7 @@ async function handlePauseToggle(): Promise<void> {
 async function handleRestart(): Promise<void> {
   try {
     game.restart();
-    previousGameStatus = "playing";
+    gameLoop.syncGameStatus();
 
     await audioClock.restart();
   } catch (error) {
@@ -1378,8 +1293,7 @@ function returnToSongSelection(): void {
   audioClock.stop();
   game.reset();
 
-  previousGameStatus =
-    game.getState().status;
+  gameLoop.syncGameStatus();
 
   songPreviewPlayer.stop();
 
@@ -1694,9 +1608,7 @@ function handleResize(): void {
 function cleanUp(): void {
   gameDebugPanel.destroy();
 
-  cancelAnimationFrame(
-    animationFrameId,
-  );
+  gameLoop.stop();
 
   unsubscribeFromCameraStatus();
   unsubscribeFromPoseTrackerStatus();
@@ -2019,8 +1931,7 @@ viewManager.show(
   "library-import",
 );
 
-animationFrameId =
-  requestAnimationFrame(gameLoop);
+gameLoop.start();
 
 gameDebugPanel.initialize();
 
