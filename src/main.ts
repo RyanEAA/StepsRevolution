@@ -411,6 +411,7 @@ const gameContainerResizeObserver =
       )
     ) {
       renderer.resize();
+      gameLoop.requestRender();
     }
   });
 
@@ -448,7 +449,7 @@ const gameLoop = new GameLoop({
   gameDebugPanel,
   cameraTrackingDebugPanel,
   onGameFinished: showResults,
-  onFrameCompleted: updateButtonState,
+  onGameStatusChanged: updateButtonState,
 });
 
 /* =========================================================
@@ -796,6 +797,8 @@ function updateButtonState(): void {
       : "Pause";
 
   navGameButton.disabled = !canPlay;
+
+  gameLoop.requestRender();
 }
 
 /* =========================================================
@@ -1590,6 +1593,7 @@ const unsubscribeFromViewChanges =
          */
         requestAnimationFrame(() => {
           renderer.resize();
+          gameLoop.requestRender();
         });
       }
     },
@@ -1602,6 +1606,7 @@ const unsubscribeFromViewChanges =
 function handleResize(): void {
   if (viewManager.isShowing("gameplay")) {
     renderer.resize();
+    gameLoop.requestRender();
   }
 }
 

@@ -1,12 +1,13 @@
+import type { ViewManager } from "../app/ViewManager";
 import type { AudioClock } from "../audio/AudioClock";
 import type { CameraFootInput } from "../camera/CameraFootInput";
 import type { Game } from "../game/Game";
 import type { GameStatus } from "../game/GameState";
 import type { InputManager } from "../input/InputManager";
 import type { CanvasRenderer } from "../rendering/CanvasRenderer";
+import type { FootState } from "../types/FootState";
 import type { CameraTrackingDebugPanel } from "../ui/CameraTrackingDebugPanel";
 import type { GameDebugPanel } from "../ui/GameDebugPanel";
-import type { ViewManager } from "../app/ViewManager";
 
 export interface GameLoopDependencies {
   input: InputManager;
@@ -18,7 +19,7 @@ export interface GameLoopDependencies {
   gameDebugPanel: GameDebugPanel;
   cameraTrackingDebugPanel: CameraTrackingDebugPanel;
   onGameFinished: () => void;
-  onFrameCompleted: () => void;
+  onGameStatusChanged: () => void;
 }
 
 export class GameLoop {
@@ -31,12 +32,14 @@ export class GameLoop {
   private readonly gameDebugPanel: GameDebugPanel;
   private readonly cameraTrackingDebugPanel: CameraTrackingDebugPanel;
   private readonly onGameFinished: () => void;
-  private readonly onFrameCompleted: () => void;
+  private readonly onGameStatusChanged: () => void;
 
   private animationFrameId: number | null = null;
   private previousFrameTimeMs = 0;
   private smoothedFramesPerSecond = 60;
   private previousGameStatus: GameStatus;
+  private renderRequested = true;
+  private lastRenderedFootState: FootState | null = null;
 
   constructor(dependencies: GameLoopDependencies) {
     this.input = dependencies.input;
@@ -49,7 +52,7 @@ export class GameLoop {
     this.cameraTrackingDebugPanel =
       dependencies.cameraTrackingDebugPanel;
     this.onGameFinished = dependencies.onGameFinished;
-    this.onFrameCompleted = dependencies.onFrameCompleted;
+    this.onGameStatusChanged = dependencies.onGameStatusChanged;
 
     this.previousGameStatus = this.game.getState().status;
   }
@@ -74,7 +77,20 @@ export class GameLoop {
   }
 
   public syncGameStatus(): void {
-    this.previousGameStatus = this.game.getState().status;
+    const currentGameStatus = this.game.getState().status;
+    const gameStatusChanged =
+      this.previousGameStatus !== currentGameStatus;
+
+    this.previousGameStatus = currentGameStatus;
+    this.requestRender();
+
+    if (gameStatusChanged) {
+      this.onGameStatusChanged();
+    }
+  }
+
+  public requestRender(): void {
+    this.renderRequested = true;
   }
 
   private readonly handleFrame = (
@@ -133,12 +149,37 @@ export class GameLoop {
       currentFrameTimeMs,
     );
 
-    if (this.viewManager.isShowing("gameplay")) {
+    const gameStatusChanged =
+      this.previousGameStatus !== gameState.status;
+
+    if (gameStatusChanged) {
+      this.requestRender();
+      this.onGameStatusChanged();
+    }
+
+    const footVisualChanged =
+      this.hasFootVisualChanged(footState);
+
+    const shouldRenderContinuously =
+      statusBeforeUpdate === "playing" ||
+      gameState.status === "playing";
+
+    if (
+      this.viewManager.isShowing("gameplay") &&
+      (
+        shouldRenderContinuously ||
+        this.renderRequested ||
+        footVisualChanged
+      )
+    ) {
       this.renderer.render(
         footState,
         this.game.getVisibleNotes(),
         gameState,
       );
+
+      this.captureRenderedFootState(footState);
+      this.renderRequested = false;
     }
 
     if (
@@ -149,9 +190,31 @@ export class GameLoop {
     }
 
     this.previousGameStatus = gameState.status;
-
-    this.onFrameCompleted();
-
     this.animationFrameId = requestAnimationFrame(this.handleFrame);
   };
+
+  private hasFootVisualChanged(footState: FootState): boolean {
+    const previous = this.lastRenderedFootState;
+
+    if (!previous) {
+      return true;
+    }
+
+    return (
+      previous.leftX !== footState.leftX ||
+      previous.rightX !== footState.rightX ||
+      previous.leftVisible !== footState.leftVisible ||
+      previous.rightVisible !== footState.rightVisible
+    );
+  }
+
+  private captureRenderedFootState(footState: FootState): void {
+    this.lastRenderedFootState = {
+      leftX: footState.leftX,
+      rightX: footState.rightX,
+      leftVisible: footState.leftVisible,
+      rightVisible: footState.rightVisible,
+      timestampMs: footState.timestampMs,
+    };
+  }
 }

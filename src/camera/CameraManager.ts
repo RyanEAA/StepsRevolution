@@ -1,5 +1,3 @@
-import type { ImageClassifier } from "@mediapipe/tasks-vision";
-
 export type CameraStatus =
     | "idle"
     | "starting"
