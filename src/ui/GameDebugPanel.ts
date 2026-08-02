@@ -1,5 +1,6 @@
 import type { GameState } from "../game/GameState";
 import type { FootState } from "../types/FootState";
+import type { RendererPerformanceStats } from "../rendering/CanvasRenderer";
 
 const DEBUG_VISIBLE_STORAGE_KEY =
   "dance-vision.debug-visible";
@@ -50,6 +51,10 @@ export class GameDebugPanel {
   private readonly gameTime: HTMLElement;
   private readonly gameStatus: HTMLElement;
   private readonly fps: HTMLElement;
+  private readonly renderAverage: HTMLElement;
+  private readonly renderPercentile95: HTMLElement;
+  private readonly renderMaximum: HTMLElement;
+  private readonly renderOverBudget: HTMLElement;
 
   private visible = true;
   private lastUpdateTimeMs = -Infinity;
@@ -114,6 +119,26 @@ export class GameDebugPanel {
       this.panel,
       "#debug-fps",
     );
+
+    this.renderAverage = requireElement<HTMLElement>(
+      this.panel,
+      "#debug-render-average",
+    );
+
+    this.renderPercentile95 = requireElement<HTMLElement>(
+      this.panel,
+      "#debug-render-p95",
+    );
+
+    this.renderMaximum = requireElement<HTMLElement>(
+      this.panel,
+      "#debug-render-maximum",
+    );
+
+    this.renderOverBudget = requireElement<HTMLElement>(
+      this.panel,
+      "#debug-render-over-budget",
+    );
   }
 
   public initialize(): void {
@@ -137,6 +162,7 @@ export class GameDebugPanel {
     footState: Readonly<FootState>,
     gameState: Readonly<GameState>,
     framesPerSecond: number,
+    rendererStats: Readonly<RendererPerformanceStats>,
     nowMs: number,
   ): void {
     if (!this.visible) {
@@ -197,6 +223,26 @@ export class GameDebugPanel {
     setTextIfChanged(
       this.fps,
       framesPerSecond.toFixed(1),
+    );
+
+    setTextIfChanged(
+      this.renderAverage,
+      `${rendererStats.averageMs.toFixed(2)} ms`,
+    );
+
+    setTextIfChanged(
+      this.renderPercentile95,
+      `${rendererStats.percentile95Ms.toFixed(2)} ms`,
+    );
+
+    setTextIfChanged(
+      this.renderMaximum,
+      `${rendererStats.maximumMs.toFixed(2)} ms`,
+    );
+
+    setTextIfChanged(
+      this.renderOverBudget,
+      `${rendererStats.framesOverBudget}/${rendererStats.sampleCount}`,
     );
   }
 

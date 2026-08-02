@@ -8,6 +8,8 @@ const NOTE_RADIUS_MIN = 18;
 const NOTE_RADIUS_MAX = 34;
 
 const LANE_COUNT = 4;
+const RENDER_SAMPLE_COUNT = 120;
+const RENDER_BUDGET_MS = 8;
 
 const LANE_LABELS = [
     "LEFT",
@@ -23,12 +25,32 @@ const LANE_SYMBOLS = [
     "→",
 ] as const;
 
+export interface RendererPerformanceStats {
+    averageMs: number;
+    percentile95Ms: number;
+    maximumMs: number;
+    framesOverBudget: number;
+    sampleCount: number;
+}
+
 export class CanvasRenderer {
     private readonly canvas: HTMLCanvasElement;
     private readonly context: CanvasRenderingContext2D;
+    private readonly staticCanvas: HTMLCanvasElement;
+    private readonly staticContext: CanvasRenderingContext2D;
+
+    private readonly renderSamples =
+        new Float64Array(RENDER_SAMPLE_COUNT);
+
+    private renderSampleIndex = 0;
+    private renderSampleCount = 0;
 
     private cssWidth = 0;
     private cssHeight = 0;
+    private laneWidth = 0;
+    private judgmentLineY = 0;
+    private noteRadius = NOTE_RADIUS_MIN;
+    private footRadius = NOTE_RADIUS_MIN;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -42,6 +64,19 @@ export class CanvasRenderer {
         }
 
         this.context = context;
+
+        this.staticCanvas = document.createElement("canvas");
+
+        const staticContext =
+            this.staticCanvas.getContext("2d");
+
+        if (!staticContext) {
+            throw new Error(
+                "Your browser does not support an offscreen Canvas 2D rendering context.",
+            );
+        }
+
+        this.staticContext = staticContext;
         this.resize();
     }
 
@@ -52,8 +87,13 @@ export class CanvasRenderer {
         this.cssWidth = rectangle.width;
         this.cssHeight = rectangle.height;
 
+        this.updateLayoutGeometry();
+
         this.canvas.width = Math.round(rectangle.width * pixelRatio);
         this.canvas.height = Math.round(rectangle.height * pixelRatio);
+
+        this.staticCanvas.width = this.canvas.width;
+        this.staticCanvas.height = this.canvas.height;
 
         /*
          * Drawing commands can continue using CSS pixel measurements even
@@ -67,6 +107,17 @@ export class CanvasRenderer {
             0,
             0,
         );
+
+        this.staticContext.setTransform(
+            pixelRatio,
+            0,
+            0,
+            pixelRatio,
+            0,
+            0,
+        );
+
+        this.renderStaticLayer();
     }
 
     public render(
@@ -74,24 +125,87 @@ export class CanvasRenderer {
         notes: readonly TapNote[],
         gameState: Readonly<GameState>,
     ): void {
+        /*
+         * The gameplay view starts hidden, so its first measured size can be
+         * zero. A zero-sized canvas is safe to clear or draw into, but using
+         * it as a drawImage() source throws and would stop the game loop
+         * before the visible-view resize runs.
+         */
+        if (
+            this.cssWidth <= 0 ||
+            this.cssHeight <= 0 ||
+            this.staticCanvas.width <= 0 ||
+            this.staticCanvas.height <= 0
+        ) {
+            return;
+        }
+
+        const renderStartTimeMs = performance.now();
+
         this.clearCanvas();
-        this.drawBackground();
-        this.drawLanes();
+        this.drawStaticLayer();
 
         this.drawNotes(
             notes,
             gameState.gameTimeSeconds,
         );
 
-        this.drawJudgmentLine();
         this.drawFeet(footState);
 
         this.drawGameHud(gameState);
-
+        this.recordRenderDuration(
+            performance.now() - renderStartTimeMs,
+        );
     }
 
-    private drawBackground(): void {
-        const gradient = this.context.createLinearGradient(
+    public getPerformanceStats(): RendererPerformanceStats {
+        if (this.renderSampleCount === 0) {
+            return {
+                averageMs: 0,
+                percentile95Ms: 0,
+                maximumMs: 0,
+                framesOverBudget: 0,
+                sampleCount: 0,
+            };
+        }
+
+        const samples = Array.from(
+            this.renderSamples.subarray(
+                0,
+                this.renderSampleCount,
+            ),
+        ).sort((left, right) => left - right);
+
+        let totalMs = 0;
+        let framesOverBudget = 0;
+
+        for (const sample of samples) {
+            totalMs += sample;
+
+            if (sample > RENDER_BUDGET_MS) {
+                framesOverBudget += 1;
+            }
+        }
+
+        const percentile95Index = Math.min(
+            samples.length - 1,
+            Math.ceil(samples.length * 0.95) - 1,
+        );
+
+        return {
+            averageMs: totalMs / samples.length,
+            percentile95Ms:
+                samples[percentile95Index] ?? 0,
+            maximumMs: samples.at(-1) ?? 0,
+            framesOverBudget,
+            sampleCount: samples.length,
+        };
+    }
+
+    private drawBackground(
+        context: CanvasRenderingContext2D,
+    ): void {
+        const gradient = context.createLinearGradient(
             0,
             0,
             0,
@@ -108,8 +222,8 @@ export class CanvasRenderer {
             "rgba(8,12,22,0.55)",
         );
 
-        this.context.fillStyle = gradient;
-        this.context.fillRect(
+        context.fillStyle = gradient;
+        context.fillRect(
             0,
             0,
             this.cssWidth,
@@ -117,107 +231,109 @@ export class CanvasRenderer {
         );
     }
 
-    private drawLanes(): void {
-        const laneWidth = this.cssWidth / LANE_COUNT;
-
+    private drawLanes(
+        context: CanvasRenderingContext2D,
+    ): void {
         for (let laneIndex = 0; laneIndex < LANE_COUNT; laneIndex += 1) {
-            const laneX = laneIndex * laneWidth;
+            const laneX = laneIndex * this.laneWidth;
 
-            this.context.fillStyle =
+            context.fillStyle =
                 laneIndex % 2 === 0
                     ? "rgba(255, 255, 255, 0.025)"
                     : "rgba(255, 255, 255, 0.055)";
 
-            this.context.fillRect(
+            context.fillRect(
                 laneX,
                 0,
-                laneWidth,
+                this.laneWidth,
                 this.cssHeight,
             );
 
             this.drawLaneHeading(
+                context,
                 laneIndex as Lane,
                 laneX,
-                laneWidth,
+                this.laneWidth,
             );
         }
 
-        this.context.strokeStyle = "rgba(255, 255, 255, 0.2)";
-        this.context.lineWidth = 2;
+        context.strokeStyle = "rgba(255, 255, 255, 0.2)";
+        context.lineWidth = 2;
 
         for (let dividerIndex = 1; dividerIndex < LANE_COUNT; dividerIndex += 1) {
-            const dividerX = dividerIndex * laneWidth;
+            const dividerX = dividerIndex * this.laneWidth;
 
-            this.context.beginPath();
-            this.context.moveTo(dividerX, 0);
-            this.context.lineTo(dividerX, this.cssHeight);
-            this.context.stroke();
+            context.beginPath();
+            context.moveTo(dividerX, 0);
+            context.lineTo(dividerX, this.cssHeight);
+            context.stroke();
         }
     }
 
     private drawLaneHeading(
+        context: CanvasRenderingContext2D,
         lane: Lane,
         laneX: number,
         laneWidth: number,
     ): void {
         const centerX = laneX + laneWidth / 2;
 
-        this.context.textAlign = "center";
-        this.context.textBaseline = "middle";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
 
-        this.context.fillStyle = "rgba(255, 255, 255, 0.9)";
-        this.context.font =
+        context.fillStyle = "rgba(255, 255, 255, 0.9)";
+        context.font =
             `700 ${this.clamp(laneWidth * 0.22, 28, 52)}px system-ui`;
 
-        this.context.fillText(
+        context.fillText(
             LANE_SYMBOLS[lane],
             centerX,
             48,
         );
 
-        this.context.fillStyle = "rgba(255, 255, 255, 0.55)";
-        this.context.font =
+        context.fillStyle = "rgba(255, 255, 255, 0.55)";
+        context.font =
             `600 ${this.clamp(laneWidth * 0.065, 10, 14)}px system-ui`;
 
-        this.context.fillText(
+        context.fillText(
             LANE_LABELS[lane],
             centerX,
             82,
         );
     }
 
-    private drawJudgmentLine(): void {
-        const judgmentLineY = this.getJudgmentLineY();
+    private drawJudgmentLine(
+        context: CanvasRenderingContext2D,
+    ): void {
+        context.save();
 
-        this.context.save();
+        context.shadowBlur = 14;
+        context.shadowColor = "rgba(255, 255, 255, 0.55)";
 
-        this.context.shadowBlur = 14;
-        this.context.shadowColor = "rgba(255, 255, 255, 0.55)";
+        context.strokeStyle = "rgba(255, 255, 255, 0.95)";
+        context.lineWidth = 4;
 
-        this.context.strokeStyle = "rgba(255, 255, 255, 0.95)";
-        this.context.lineWidth = 4;
+        context.beginPath();
+        context.moveTo(0, this.judgmentLineY);
+        context.lineTo(this.cssWidth, this.judgmentLineY);
+        context.stroke();
 
-        this.context.beginPath();
-        this.context.moveTo(0, judgmentLineY);
-        this.context.lineTo(this.cssWidth, judgmentLineY);
-        this.context.stroke();
+        context.restore();
 
-        this.context.restore();
+        context.fillStyle = "rgba(255, 255, 255, 0.75)";
+        context.font = "600 11px system-ui";
+        context.textAlign = "left";
+        context.textBaseline = "bottom";
 
-        this.context.fillStyle = "rgba(255, 255, 255, 0.75)";
-        this.context.font = "600 11px system-ui";
-        this.context.textAlign = "left";
-        this.context.textBaseline = "bottom";
-
-        this.context.fillText(
+        context.fillText(
             "JUDGMENT LINE",
             12,
-            judgmentLineY - 10,
+            this.judgmentLineY - 10,
         );
     }
 
     private drawFeet(footState: FootState): void {
-        const footY = this.getJudgmentLineY() + 44;
+        const footY = this.judgmentLineY + 44;
 
         if (footState.leftVisible) {
             this.drawFootDot(
@@ -245,7 +361,7 @@ export class CanvasRenderer {
         color: string,
     ): void {
         const x = normalizedX * this.cssWidth;
-        const radius = this.clamp(this.cssWidth * 0.022, 18, 28);
+        const radius = this.footRadius;
 
         this.context.save();
 
@@ -291,19 +407,6 @@ export class CanvasRenderer {
         );
     }
 
-    private getJudgmentLineY(): number {
-        return this.cssHeight * 0.78;
-    }
-
-    private positionToLane(normalizedX: number): Lane {
-        const lane = Math.floor(normalizedX * LANE_COUNT);
-
-        /*
-         * A normalized position of exactly 1.0 would otherwise produce lane 4.
-         */
-        return this.clamp(lane, 0, LANE_COUNT - 1) as Lane;
-    }
-
     private clamp(value: number, minimum: number, maximum: number): number {
         return Math.min(Math.max(value, minimum), maximum);
     }
@@ -322,7 +425,7 @@ export class CanvasRenderer {
                 note.hitTimeSeconds - gameTimeSeconds;
 
             if (secondsUntilHit > NOTE_APPROACH_SECONDS) {
-                continue;
+                break;
             }
 
             const noteY = this.calculateNoteY(secondsUntilHit);
@@ -336,8 +439,6 @@ export class CanvasRenderer {
     }
 
     private calculateNoteY(secondsUntilHit: number): number {
-        const judgmentLineY = this.getJudgmentLineY();
-
         /*
         * At NOTE_APPROACH_SECONDS before the hit, progress is 0 and the
         * note is at the top.
@@ -348,18 +449,14 @@ export class CanvasRenderer {
         const progress =
             1 - secondsUntilHit / NOTE_APPROACH_SECONDS;
 
-        return progress * judgmentLineY;
+        return progress * this.judgmentLineY;
     }
 
     private drawTapNote(lane: Lane, y: number): void {
-        const laneWidth = this.cssWidth / LANE_COUNT;
-        const centerX = laneWidth * lane + laneWidth / 2;
+        const centerX =
+            this.laneWidth * lane + this.laneWidth / 2;
 
-        const noteRadius = this.clamp(
-            laneWidth * 0.16,
-            NOTE_RADIUS_MIN,
-            NOTE_RADIUS_MAX,
-        );
+        const noteRadius = this.noteRadius;
 
         this.context.save();
 
@@ -481,7 +578,7 @@ export class CanvasRenderer {
             1 - ageSeconds / displayDurationSeconds;
 
         const centerX = this.cssWidth / 2;
-        const judgmentY = this.getJudgmentLineY() - 92;
+        const judgmentY = this.judgmentLineY - 92;
 
         this.context.save();
 
@@ -532,6 +629,62 @@ export class CanvasRenderer {
             0,
             this.cssWidth,
             this.cssHeight,
+        );
+    }
+
+    private updateLayoutGeometry(): void {
+        this.laneWidth = this.cssWidth / LANE_COUNT;
+        this.judgmentLineY = this.cssHeight * 0.78;
+
+        this.noteRadius = this.clamp(
+            this.laneWidth * 0.16,
+            NOTE_RADIUS_MIN,
+            NOTE_RADIUS_MAX,
+        );
+
+        this.footRadius = this.clamp(
+            this.cssWidth * 0.022,
+            18,
+            28,
+        );
+    }
+
+    private renderStaticLayer(): void {
+        this.staticContext.clearRect(
+            0,
+            0,
+            this.cssWidth,
+            this.cssHeight,
+        );
+
+        this.drawBackground(this.staticContext);
+        this.drawLanes(this.staticContext);
+        this.drawJudgmentLine(this.staticContext);
+    }
+
+    private drawStaticLayer(): void {
+        this.context.drawImage(
+            this.staticCanvas,
+            0,
+            0,
+            this.staticCanvas.width,
+            this.staticCanvas.height,
+            0,
+            0,
+            this.cssWidth,
+            this.cssHeight,
+        );
+    }
+
+    private recordRenderDuration(durationMs: number): void {
+        this.renderSamples[this.renderSampleIndex] = durationMs;
+
+        this.renderSampleIndex =
+            (this.renderSampleIndex + 1) % RENDER_SAMPLE_COUNT;
+
+        this.renderSampleCount = Math.min(
+            this.renderSampleCount + 1,
+            RENDER_SAMPLE_COUNT,
         );
     }
 }

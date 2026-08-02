@@ -168,7 +168,7 @@ export class CameraTrackingDebugPanel {
 
   private isHidden(): boolean {
     return (
-      this.panel.hidden ||
+      Boolean(this.panel.hidden) ||
       this.panel.closest("[hidden]") !== null
     );
   }

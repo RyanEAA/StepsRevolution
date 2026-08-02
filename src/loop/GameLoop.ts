@@ -146,6 +146,7 @@ export class GameLoop {
       footState,
       gameState,
       this.smoothedFramesPerSecond,
+      this.renderer.getPerformanceStats(),
       currentFrameTimeMs,
     );
 
