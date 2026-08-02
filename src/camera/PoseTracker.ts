@@ -109,8 +109,9 @@ export class PoseTracker {
             this.videoElement.currentTime;
 
         /*
-         * requestAnimationFrame can run several times while the video
-         * element still represents the same decoded frame.
+         * The animation-frame compatibility scheduler can run several times
+         * while the video still represents the same decoded frame. This is
+         * also a safety guard if a browser repeats video-frame callbacks.
          */
         if (
             videoTimeSeconds ===

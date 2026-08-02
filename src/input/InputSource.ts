@@ -2,6 +2,12 @@ import type { FootState } from "../types/FootState";
 
 export interface InputSource {
     /**
+     * Starts or stops source-specific background work when the selected input
+     * mode changes. Sources without background work may omit this method.
+     */
+    setActive?(active: boolean): void;
+
+    /**
      * Updates the input source.
      *
      * @param deltaSeconds

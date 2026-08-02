@@ -15,10 +15,19 @@ export class InputManager implements InputSource {
     ) {
         this.keyboardInput = keyboardInput;
         this.cameraInput = cameraInput;
+
+        this.keyboardInput.setActive?.(true);
+        this.cameraInput.setActive?.(false);
     }
 
     public setMode(mode: InputMode): void {
+        if (mode === this.activeMode) {
+            return;
+        }
+
+        this.getActiveSource().setActive?.(false);
         this.activeMode = mode;
+        this.getActiveSource().setActive?.(true);
     }
 
     public getMode(): InputMode {
@@ -34,6 +43,8 @@ export class InputManager implements InputSource {
     }
 
     public destroy(): void {
+        this.keyboardInput.setActive?.(false);
+        this.cameraInput.setActive?.(false);
         this.keyboardInput.destroy();
         this.cameraInput.destroy();
     }

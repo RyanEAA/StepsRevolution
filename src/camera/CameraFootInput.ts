@@ -8,7 +8,13 @@ import type {
 
 import {
     CameraManager,
+    type CameraStatus,
 } from "./CameraManager";
+
+import {
+    CameraFrameScheduler,
+    type CameraFrameSchedulerMode,
+} from "./CameraFrameScheduler";
 
 import {
     FootPositionEstimator,
@@ -40,11 +46,17 @@ export interface CameraFootDebugState {
 
     leftVisible: boolean;
     rightVisible: boolean;
+
+    schedulerMode: CameraFrameSchedulerMode;
+    inferenceDurationMs: number;
+    inferenceFramesPerSecond: number;
 }
 
 export class CameraFootInput implements InputSource {
     private readonly cameraManager: CameraManager;
     private readonly poseTracker: PoseTracker;
+    private readonly frameScheduler:
+        CameraFrameScheduler;
 
     private readonly overlayRenderer:
         PoseOverlayRenderer;
@@ -54,6 +66,14 @@ export class CameraFootInput implements InputSource {
 
     private readonly estimator:
         FootPositionEstimator;
+
+    private unsubscribeFromCameraStatus:
+        (() => void) | null = null;
+
+    private active = false;
+    private destroyed = false;
+    private previousInferenceTimeMs = -Infinity;
+    private smoothedInferenceFramesPerSecond = 0;
 
     private footState: FootState = {
         leftX: 0.375,
@@ -72,6 +92,9 @@ export class CameraFootInput implements InputSource {
         rightConfidence: 0,
         leftVisible: false,
         rightVisible: false,
+        schedulerMode: "animation-frame",
+        inferenceDurationMs: 0,
+        inferenceFramesPerSecond: 0,
     };
 
     constructor(
@@ -108,26 +131,57 @@ export class CameraFootInput implements InputSource {
         this.poseTracker =
             new PoseTracker(videoElement);
 
+        this.frameScheduler =
+            new CameraFrameScheduler(videoElement);
+
+        this.debugState = {
+            ...this.debugState,
+            schedulerMode:
+                this.frameScheduler.getMode(),
+        };
+
         this.overlayRenderer =
             new PoseOverlayRenderer(
                 poseOverlayCanvas,
                 this.coordinateMapper,
             );
+
+        this.unsubscribeFromCameraStatus =
+            this.cameraManager.subscribe(
+                this.handleCameraStatus,
+            );
     }
 
     public async initialize(): Promise<void> {
         await this.poseTracker.initialize();
+        this.updateScheduling();
     }
 
     public update(
         _deltaSeconds: number,
     ): void {
-        const nowMs = performance.now();
+        /*
+         * Camera inference is driven by CameraFrameScheduler. The game loop
+         * calls update() only to satisfy the shared InputSource contract.
+         */
+    }
 
-        if (!this.cameraManager.isRunning()) {
-            this.setInvisible(nowMs);
-            this.overlayRenderer.clear();
-            this.poseTracker.resetVideoState();
+    public setActive(active: boolean): void {
+        if (this.destroyed || this.active === active) {
+            return;
+        }
+
+        this.active = active;
+        this.updateScheduling();
+    }
+
+    private readonly processVideoFrame = (
+        nowMs: number,
+    ): void => {
+        if (
+            !this.active ||
+            !this.cameraManager.isRunning()
+        ) {
             return;
         }
 
@@ -137,16 +191,24 @@ export class CameraFootInput implements InputSource {
         }
 
         try {
+            const inferenceStartTimeMs =
+                performance.now();
+
             const result =
                 this.poseTracker.detect(nowMs);
 
             if (!result) {
                 /*
-                 * No inference was performed this animation frame.
-                 * Keep the most recent inference result.
+                 * This decoded frame was skipped by the configured inference
+                 * throttle. Keep the most recent inference result.
                  */
                 return;
             }
+
+            this.recordInferencePerformance(
+                nowMs,
+                performance.now() - inferenceStartTimeMs,
+            );
 
             this.coordinateMapper
                 .refreshDisplayGeometry();
@@ -184,7 +246,7 @@ export class CameraFootInput implements InputSource {
             this.setInvisible(nowMs);
             this.overlayRenderer.clear();
         }
-    }
+    };
 
     public getFootState(): FootState {
         return this.footState;
@@ -229,6 +291,14 @@ export class CameraFootInput implements InputSource {
     }
 
     public destroy(): void {
+        if (this.destroyed) {
+            return;
+        }
+
+        this.destroyed = true;
+        this.frameScheduler.stop();
+        this.unsubscribeFromCameraStatus?.();
+        this.unsubscribeFromCameraStatus = null;
         this.poseTracker.destroy();
         this.overlayRenderer.clear();
         this.cameraManager.destroy();
@@ -247,6 +317,7 @@ export class CameraFootInput implements InputSource {
         };
 
         this.debugState = {
+            ...this.debugState,
             leftSourceX:
                 feet.left.sourceX,
 
@@ -289,6 +360,89 @@ export class CameraFootInput implements InputSource {
             rightConfidence: 0,
             leftVisible: false,
             rightVisible: false,
+        };
+    }
+
+    private readonly handleCameraStatus = (
+        status: CameraStatus,
+    ): void => {
+        if (status === "running") {
+            this.poseTracker.resetVideoState();
+            this.resetInferencePerformance();
+            this.updateScheduling();
+            return;
+        }
+
+        if (
+            status === "stopped" ||
+            status === "error"
+        ) {
+            this.frameScheduler.stop();
+            this.poseTracker.resetVideoState();
+            this.resetInferencePerformance();
+            this.setInvisible(performance.now());
+            this.overlayRenderer.clear();
+        }
+    };
+
+    private updateScheduling(): void {
+        if (
+            this.destroyed ||
+            !this.active ||
+            !this.cameraManager.isRunning() ||
+            !this.poseTracker.isReady()
+        ) {
+            this.frameScheduler.stop();
+            return;
+        }
+
+        this.frameScheduler.start(
+            this.processVideoFrame,
+        );
+    }
+
+    private recordInferencePerformance(
+        nowMs: number,
+        durationMs: number,
+    ): void {
+        if (
+            Number.isFinite(
+                this.previousInferenceTimeMs,
+            )
+        ) {
+            const intervalMs =
+                nowMs - this.previousInferenceTimeMs;
+
+            if (intervalMs > 0) {
+                const currentFramesPerSecond =
+                    1000 / intervalMs;
+
+                this.smoothedInferenceFramesPerSecond =
+                    this.smoothedInferenceFramesPerSecond === 0
+                        ? currentFramesPerSecond
+                        : this.smoothedInferenceFramesPerSecond * 0.85 +
+                            currentFramesPerSecond * 0.15;
+            }
+        }
+
+        this.previousInferenceTimeMs = nowMs;
+
+        this.debugState = {
+            ...this.debugState,
+            inferenceDurationMs: durationMs,
+            inferenceFramesPerSecond:
+                this.smoothedInferenceFramesPerSecond,
+        };
+    }
+
+    private resetInferencePerformance(): void {
+        this.previousInferenceTimeMs = -Infinity;
+        this.smoothedInferenceFramesPerSecond = 0;
+
+        this.debugState = {
+            ...this.debugState,
+            inferenceDurationMs: 0,
+            inferenceFramesPerSecond: 0,
         };
     }
 }

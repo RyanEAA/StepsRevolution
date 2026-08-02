@@ -38,6 +38,9 @@ export class CameraTrackingDebugPanel {
   private readonly rightConfidence: HTMLElement;
   private readonly leftVisible: HTMLElement;
   private readonly rightVisible: HTMLElement;
+  private readonly schedulerMode: HTMLElement;
+  private readonly inferenceDuration: HTMLElement;
+  private readonly inferenceFramesPerSecond: HTMLElement;
 
   private lastUpdateTimeMs = -Infinity;
 
@@ -93,6 +96,24 @@ export class CameraTrackingDebugPanel {
       requireElement<HTMLElement>(
         this.panel,
         "#camera-right-visible",
+      );
+
+    this.schedulerMode =
+      requireElement<HTMLElement>(
+        this.panel,
+        "#camera-scheduler-mode",
+      );
+
+    this.inferenceDuration =
+      requireElement<HTMLElement>(
+        this.panel,
+        "#camera-inference-duration",
+      );
+
+    this.inferenceFramesPerSecond =
+      requireElement<HTMLElement>(
+        this.panel,
+        "#camera-actual-inference-fps",
       );
   }
 
@@ -163,6 +184,23 @@ export class CameraTrackingDebugPanel {
       debug.rightVisible
         ? "Yes"
         : "No",
+    );
+
+    setTextIfChanged(
+      this.schedulerMode,
+      debug.schedulerMode === "video-frame"
+        ? "Video frame"
+        : "RAF fallback",
+    );
+
+    setTextIfChanged(
+      this.inferenceDuration,
+      `${debug.inferenceDurationMs.toFixed(1)} ms`,
+    );
+
+    setTextIfChanged(
+      this.inferenceFramesPerSecond,
+      debug.inferenceFramesPerSecond.toFixed(1),
     );
   }
 
