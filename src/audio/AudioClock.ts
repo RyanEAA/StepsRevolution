@@ -63,6 +63,22 @@ export class AudioClock {
         this.startSourceAt(0);
     }
 
+    public async unlock(): Promise<void> {
+        await this.ensureContextRunning();
+    }
+
+    public async scheduleFromStart(localPerformanceTimeMs: number): Promise<void> {
+        this.ensureAudioLoaded();
+        await this.ensureContextRunning();
+        const delaySeconds = (localPerformanceTimeMs - performance.now()) / 1000;
+        if (delaySeconds < 0.2) throw new Error("The synchronized start arrived too late to schedule safely.");
+        this.stopSource();
+        this.sourceOffsetSeconds = 0;
+        this.pausedAtSeconds = 0;
+        const context = this.getOrCreateAudioContext();
+        this.startSourceAt(0, context.currentTime + delaySeconds);
+    }
+
     public async pause(): Promise<void> {
         if (this.status !== "playing") {
             return;
@@ -106,7 +122,17 @@ export class AudioClock {
             : "empty";
     }
 
+    public clear(): void {
+        this.stopSource();
+        this.audioBuffer = null;
+        this.sourceOffsetSeconds = 0;
+        this.pausedAtSeconds = 0;
+        this.status = "empty";
+    }
+
     public getCurrentTimeSeconds(): number {
+        this.reconcileNaturalEnd();
+
         if (
             this.status === "playing" &&
             this.audioContext
@@ -115,10 +141,10 @@ export class AudioClock {
                 this.audioContext.currentTime -
                 this.contextStartTimeSeconds;
 
-            return Math.min(
+            return Math.max(0, Math.min(
                 this.sourceOffsetSeconds + elapsedContextTime,
                 this.getDurationSeconds(),
-            );
+            ));
         }
 
         return this.pausedAtSeconds;
@@ -129,6 +155,7 @@ export class AudioClock {
     }
 
     public getStatus(): AudioClockStatus {
+        this.reconcileNaturalEnd();
         return this.status;
     }
 
@@ -148,7 +175,7 @@ export class AudioClock {
         this.status = "empty";
     }
 
-    private startSourceAt(offsetSeconds: number): void {
+    private startSourceAt(offsetSeconds: number, startAtContextSeconds?: number): void {
         const context = this.getOrCreateAudioContext();
         const buffer = this.audioBuffer;
 
@@ -175,10 +202,11 @@ export class AudioClock {
 
         this.sourceNode = source;
         this.sourceOffsetSeconds = safeOffset;
-        this.contextStartTimeSeconds = context.currentTime;
+        const scheduledStart = startAtContextSeconds ?? context.currentTime;
+        this.contextStartTimeSeconds = scheduledStart;
 
         source.start(
-            context.currentTime,
+            scheduledStart,
             safeOffset,
         );
 
@@ -208,11 +236,49 @@ export class AudioClock {
     }
 
     private readonly handleSourceEnded = (): void => {
+        this.markNaturallyFinished();
+    };
+
+    private reconcileNaturalEnd(): void {
+        if (
+            this.status !== "playing" ||
+            !this.audioContext ||
+            !this.audioBuffer
+        ) {
+            return;
+        }
+
+        const playbackPositionSeconds =
+            this.sourceOffsetSeconds +
+            (this.audioContext.currentTime - this.contextStartTimeSeconds);
+
+        /*
+         * AudioBufferSourceNode's ended event can be delayed or missed by a
+         * browser after a scheduled start. The Web Audio clock is still
+         * authoritative, so reaching the decoded buffer duration is an
+         * equivalent and deterministic completion signal.
+         */
+        if (playbackPositionSeconds >= this.audioBuffer.duration) {
+            this.markNaturallyFinished();
+        }
+    }
+
+    private markNaturallyFinished(): void {
+        const source = this.sourceNode;
+        if (source) {
+            source.removeEventListener("ended", this.handleSourceEnded);
+            try {
+                source.disconnect();
+            } catch {
+                // An already-ended source may already be disconnected.
+            }
+        }
+
         this.sourceNode = null;
         this.pausedAtSeconds = this.getDurationSeconds();
         this.sourceOffsetSeconds = this.pausedAtSeconds;
         this.status = "finished";
-    };
+    }
 
     private getOrCreateAudioContext(): AudioContext {
         if (!this.audioContext) {

@@ -3,6 +3,8 @@ import libraryViewsTemplate from "./templates/library-views.html?raw";
 import songDialogTemplate from "./templates/song-dialog.html?raw";
 import gameplayViewTemplate from "./templates/gameplay-view.html?raw";
 import resultsViewTemplate from "./templates/results-view.html?raw";
+import multiplayerViewsTemplate from "./templates/multiplayer-views.html?raw";
+import roomPreviewDialogTemplate from "./templates/room-preview-dialog.html?raw";
 
 const APP_SELECTOR = "#app";
 
@@ -18,8 +20,10 @@ export function renderAppShell(): void {
 
   app.innerHTML = [
     appHeaderTemplate,
+    multiplayerViewsTemplate,
     libraryViewsTemplate,
     songDialogTemplate,
+    roomPreviewDialogTemplate,
     gameplayViewTemplate,
     resultsViewTemplate,
   ].join("\n");

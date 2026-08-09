@@ -5,6 +5,7 @@ import { AudioClock } from "./audio/AudioClock";
 import { Game } from "./game/Game";
 import { FolderImporter } from "./library/FolderImporter";
 import { LibraryBuilder } from "./library/LibraryBuilder";
+import { ChartAvailabilityIndex } from "./library/ChartAvailabilityIndex";
 import { CameraFootInput } from "./camera/CameraFootInput";
 import { CameraManager } from "./camera/CameraManager";
 import { InputManager } from "./input/InputManager";
@@ -31,8 +32,32 @@ import { SongSelectionController } from "./controllers/SongSelectionController";
 import { GameplayController } from "./controllers/GameplayController";
 import { SongDialogView } from "./ui/SongDialogView";
 import { renderAppShell } from "./ui/renderAppShell";
+import { LocalSession } from "./session/LocalSession";
+import { SessionManager } from "./session/SessionManager";
+import { MultiplayerClient } from "./multiplayer/MultiplayerClient";
+import { ReconnectCredentialStore } from "./multiplayer/ReconnectCredentialStore";
+import { RoomSession } from "./multiplayer/RoomSession";
+import { MultiplayerView } from "./ui/MultiplayerView";
+import { MultiplayerController } from "./controllers/MultiplayerController";
+import { SharedRoomPreviewController } from "./controllers/SharedRoomPreviewController";
+import { RelayAssetClient } from "./multiplayer/RelayAssetClient";
+import { RoomPreviewView } from "./ui/RoomPreviewView";
+import { SharedSongPackageController } from "./controllers/SharedSongPackageController";
+import { MultiplayerStartController } from "./controllers/MultiplayerStartController";
+import { MultiplayerScoreController } from "./controllers/MultiplayerScoreController";
+import { MultiplayerScoreView } from "./ui/MultiplayerScoreView";
 
 renderAppShell();
+
+const localSession = new LocalSession();
+const sessionManager = new SessionManager(localSession);
+const multiplayerServerUrl = import.meta.env.VITE_MULTIPLAYER_SERVER_URL ?? "http://localhost:3001";
+const multiplayerClient = new MultiplayerClient({ serverUrl: multiplayerServerUrl });
+const roomSession = new RoomSession({
+  client: multiplayerClient,
+  credentialStore: new ReconnectCredentialStore(sessionStorage),
+});
+const relayAssetClient = new RelayAssetClient(multiplayerServerUrl, roomSession);
 
 /* ========================================================
     GLOBAL CONSTANTS
@@ -109,6 +134,12 @@ const gameplayView =
 const resultsView =
   requireElement<HTMLElement>("#results-view");
 
+const modeSelectionView =
+  requireElement<HTMLElement>("#mode-selection-view");
+
+const multiplayerLobbyView =
+  requireElement<HTMLElement>("#multiplayer-lobby-view");
+
 /* =========================================================
    GLOBAL NAVIGATION
    ========================================================= */
@@ -117,6 +148,9 @@ const navLibraryButton =
   requireElement<HTMLButtonElement>(
     "#nav-library-button",
   );
+
+const navSessionButton =
+  requireElement<HTMLButtonElement>("#nav-session-button");
 
 const navGameButton =
   requireElement<HTMLButtonElement>(
@@ -226,9 +260,11 @@ const audioFileStatus =
    ========================================================= */
 
 const viewManager = new ViewManager({
+  "mode-selection": modeSelectionView,
   "library-import": libraryImportView,
   "pack-selection": packSelectionView,
   "song-selection": songSelectionView,
+  "multiplayer-lobby": multiplayerLobbyView,
   gameplay: gameplayView,
   results: resultsView,
 });
@@ -267,12 +303,17 @@ gameContainerResizeObserver.observe(
 
 const game = new Game();
 const audioClock = new AudioClock();
+const multiplayerScoreController = new MultiplayerScoreController(roomSession, game);
+const multiplayerScoreView = new MultiplayerScoreView();
+multiplayerScoreController.initialize();
 
 const simfileParser = new SimfileParser();
 const runtimeChartBuilder = new RuntimeChartBuilder();
 
 const folderImporter = new FolderImporter();
 const libraryBuilder = new LibraryBuilder();
+const chartAvailabilityIndex =
+  new ChartAvailabilityIndex();
 
 /* =========================================================
    APPLICATION STATE
@@ -282,6 +323,10 @@ let loadedSimfile: StepManiaSimfile | null = null;
 let loadedLibrary: SongLibrary | null = null;
 
 let gameplayController: GameplayController;
+let multiplayerController: MultiplayerController;
+let sharedRoomPreviewController: SharedRoomPreviewController;
+let sharedSongPackageController: SharedSongPackageController;
+let multiplayerStartController: MultiplayerStartController;
 
 const gameLoop = new GameLoop({
   input,
@@ -328,7 +373,27 @@ songSelectionController = new SongSelectionController(
   libraryView,
   {
     onPlaySong(song: SongEntry, chart: StepManiaChart): void {
-      void gameplayController.launchLibrarySong(song, chart);
+      if (sessionManager.getActiveSession().kind === "online") {
+        multiplayerController.selectChartForRoom(song, chart);
+      } else {
+        void gameplayController.launchLibrarySong(song, chart);
+      }
+    },
+    onPreviewOpened(song: SongEntry): void {
+      if (sessionManager.getActiveSession().kind === "online") {
+        void sharedRoomPreviewController.publishSong(song);
+      }
+    },
+    onPreviewClosed(): void {
+      if (sessionManager.getActiveSession().kind === "online") {
+        void sharedRoomPreviewController.clearPublishedPreview();
+      }
+    },
+    onConfirmSong(song: SongEntry): void {
+      if (sessionManager.getActiveSession().kind === "online") {
+        viewManager.show("multiplayer-lobby");
+        void sharedSongPackageController.confirmSong(song);
+      }
     },
   },
 );
@@ -341,15 +406,134 @@ gameplayController = new GameplayController({
   gameLoop,
   viewManager,
   runtimeChartBuilder,
+  sessionManager,
   navGameButton,
   callbacks: {
     closeSongDialog: () => songSelectionController.closeDialog(),
     hasLoadedLibrary: () => loadedLibrary !== null,
     hasSelectedPack: () => libraryView.getSelectedPack() !== null,
+    reportOnlineFinished: async () => {
+      const room = roomSession.getState().room;
+      if (!room) throw new Error("The multiplayer room is unavailable.");
+      const state = game.getState();
+      const result = {
+        selectionRevision: room.selectionRevision,
+        sequence: multiplayerScoreController.nextSequence(),
+        score: state.score.score,
+        combo: state.score.combo,
+        maxCombo: state.score.maxCombo,
+        perfectCount: state.score.perfectCount,
+        greatCount: state.score.greatCount,
+        goodCount: state.score.goodCount,
+        missCount: state.score.missCount,
+        gameTimeSeconds: state.gameTimeSeconds,
+        finishedAtServerMs: Date.now(),
+      };
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const sessionState = roomSession.getState();
+        const localPlayer = sessionState.room?.players.find(
+          (player) => player.playerId === sessionState.localPlayerId,
+        );
+        if (localPlayer?.finalResult) return;
+
+        try {
+          await roomSession.reportGameFinished(result);
+        } catch (error) {
+          if (attempt === 4) throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+
+      const latest = roomSession.getState();
+      const reflected = latest.room?.players.find(
+        (player) => player.playerId === latest.localPlayerId,
+      )?.finalResult;
+      if (!reflected) {
+        throw new Error("The server did not confirm the final result. Check the room server connection.");
+      }
+    },
+    handleOnlineReplay: async () => {
+      const state = roomSession.getState();
+      const room = state.room;
+      if (!room || !state.localPlayerId) throw new Error("The multiplayer room is unavailable.");
+      const connected = room.players.filter((player) => player.connectionStatus === "connected");
+      const everyoneRequested = connected.every((player) => player.replayRequested);
+      if (room.hostPlayerId === state.localPlayerId && everyoneRequested) {
+        await roomSession.confirmReplay();
+      } else {
+        await roomSession.voteReplay(true);
+      }
+    },
+    handleOnlineChooseSong: async () => {
+      await roomSession.returnToSelection();
+    },
   },
 });
 
 gameplayController.initialize();
+
+const multiplayerView = new MultiplayerView();
+sharedSongPackageController = new SharedSongPackageController(
+  roomSession,
+  relayAssetClient,
+  (message) => multiplayerView.setSelectionStatus(message),
+  {
+    prepare: (songPackage, chart, runtime, audio) =>
+      gameplayController.prepareOnlineSong(songPackage, chart, runtime, audio),
+    clear: () => gameplayController.clearOnlinePreparation(),
+  },
+);
+sharedSongPackageController.initialize();
+multiplayerStartController = new MultiplayerStartController(
+  roomSession,
+  {
+    scheduleOnlineStart: (deadline) => gameplayController.scheduleOnlineStart(deadline),
+    cancelOnlineStart: (returnToLobby) => gameplayController.cancelOnlineStart(returnToLobby),
+  },
+  (message) => multiplayerView.setReadyStatus(message),
+);
+multiplayerStartController.initialize();
+
+const unsubscribeOnlineResults = roomSession.subscribe((state) => {
+  multiplayerScoreView.render(state.room, state.localPlayerId);
+  const room = state.room;
+  if (!room || !state.localPlayerId) return;
+  const local = room.players.find((player) => player.playerId === state.localPlayerId);
+  const connected = room.players.filter((player) => player.connectionStatus === "connected");
+  gameplayController.renderOnlineResults({
+    roomInResults: room.phase === "results",
+    isHost: room.hostPlayerId === state.localPlayerId,
+    localReplayRequested: local?.replayRequested ?? false,
+    everyoneRequestedReplay: connected.length > 0 && connected.every((player) => player.replayRequested),
+  });
+});
+multiplayerController = new MultiplayerController({
+  roomSession,
+  sessionManager,
+  viewManager,
+  view: multiplayerView,
+  getSinglePlayerDestination: () =>
+    loadedLibrary ? "pack-selection" : "library-import",
+  setRoomSelectionMode: (enabled) =>
+    songSelectionController.setRoomSelectionMode(enabled),
+  checkAvailability: (selection) =>
+    chartAvailabilityIndex.checkSelection(selection),
+  selectDifficulty: (chartId) =>
+    sharedSongPackageController.selectDifficulty(chartId),
+  retrySongPreparation: () =>
+    sharedSongPackageController.retryPreparation(),
+  requestCountdown: () => roomSession.requestCountdown(),
+  unlockOnlineAudio: () => gameplayController.unlockOnlineAudio(),
+});
+multiplayerController.initialize();
+
+sharedRoomPreviewController = new SharedRoomPreviewController(
+  roomSession,
+  relayAssetClient,
+  new RoomPreviewView(),
+);
+sharedRoomPreviewController.initialize();
 
 /* =========================================================
    DEVELOPER AUDIO LOADING
@@ -606,6 +790,8 @@ async function handleLibraryFolderSelection(): Promise<void> {
     }
 
     loadedLibrary = newLibrary;
+    chartAvailabilityIndex.rebuild(newLibrary);
+    multiplayerController.handleLibraryChanged();
 
     songSelectionController.clearSelection();
     libraryView.setLibrary(newLibrary);
@@ -662,15 +848,35 @@ const unsubscribeFromViewChanges =
         currentView === "pack-selection" ||
         currentView === "song-selection";
 
+      const sessionActive =
+        currentView === "mode-selection" ||
+        currentView === "multiplayer-lobby";
+
+      const online =
+        sessionManager.getActiveSession().kind === "online";
+
+      navSessionButton.classList.toggle(
+        "navigation-button--active",
+        sessionActive,
+      );
+
       navLibraryButton.classList.toggle(
         "navigation-button--active",
         libraryActive,
       );
 
+      navLibraryButton.disabled = online;
+
       navGameButton.classList.toggle(
         "navigation-button--active",
         currentView === "gameplay",
       );
+
+      if (online) {
+        navGameButton.disabled = true;
+      } else {
+        gameplayController.updateButtonState();
+      }
 
       if (currentView === "gameplay") {
         /*
@@ -703,6 +909,13 @@ function cleanUp(): void {
 
   cameraController.destroy();
   gameplayController.destroy();
+  multiplayerController.destroy();
+  sharedRoomPreviewController.destroy();
+  sharedSongPackageController.destroy();
+  multiplayerStartController.destroy();
+  multiplayerScoreController.destroy();
+  unsubscribeOnlineResults();
+  roomSession.destroy();
   input.destroy();
   audioClock.destroy();
 
@@ -713,6 +926,8 @@ function cleanUp(): void {
       loadedLibrary,
     );
   }
+
+  chartAvailabilityIndex.clear();
 
   window.removeEventListener(
     "resize",
@@ -832,9 +1047,7 @@ playfieldWidthInput.addEventListener(
 
 cameraController.initialize();
 
-viewManager.show(
-  "library-import",
-);
+viewManager.show("mode-selection");
 
 gameLoop.start();
 

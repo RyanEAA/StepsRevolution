@@ -146,4 +146,10 @@
         width: 100%;
         flex-basis: auto;
     }
+
+
+    .multiplayer-score-sidebar {
+        width: 100%;
+        flex-basis: auto;
+    }
 }

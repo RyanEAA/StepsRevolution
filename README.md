@@ -30,14 +30,44 @@ Implemented:
 - Pose overlay and gameplay diagnostics
 - Independent game, video, and pose-inference clocks
 - Optimized note processing and canvas rendering
+- Versioned SHA-256 song, chart-slot, and runtime-chart identities
+- Exact local chart availability lookup for multiplayer matching
+- Typed browser multiplayer transport and canonical room session state
+- Protocol-versioned reconnect credentials stored in `sessionStorage`
+- Local gameplay routed through an explicit single-player session policy
+- Single Player / Host Session / Join Session mode selection
+- Multiplayer lobby with canonical player, host, and connection status
+- Typed create/join errors and leave-room behavior
+- Host-controlled canonical song and chart selection
+- Guest lobby display of the host's selected chart metadata
+- Debounced selection publishing with revision-based server authority
+- Automatic local chart matching for every canonical selection revision
+- Per-player chart, audio, and readiness status in the lobby
+- Server-validated ready check with stale-revision collision retries
 
 The camera pipeline has been tested at 30 pose inferences per second while the
 game continued rendering at 60 FPS.
+
+Synchronous online multiplayer is now the active development track. Stages
+1–8 provide the protocol, identity model, room server, browser transport,
+session boundary, host/join lobby, host-controlled chart selection, exact local
+matching, and the multiplayer ready check. Clock synchronization begins in
+Stage 9.
+
+The asset model is now being revised so only the host imports a library. The
+working Stage 8 local-match flow remains as a migration fallback while the
+server-relay implementation is built. See
+[`docs/HOST_ASSET_RELAY.md`](docs/HOST_ASSET_RELAY.md) for the approved flow,
+security boundary, limits, and replacement stages.
 
 ## Technology
 
 - TypeScript
 - Vite
+- Zod runtime protocol validation
+- Vitest
+- Node.js HTTP server
+- Socket.IO
 - HTML Canvas 2D
 - Web Audio API
 - MediaDevices and `getUserMedia()`
@@ -80,11 +110,81 @@ Create a production build:
 npm run build
 ```
 
+Run the automated tests:
+
+```bash
+npm test
+```
+
 Preview the production build:
 
 ```bash
 npm run preview
 ```
+
+### Running the multiplayer room server
+
+Start the room server in development mode:
+
+```bash
+npm run server:dev
+```
+
+The default server address is `http://localhost:3001`. Verify it with:
+
+```text
+http://localhost:3001/health
+```
+
+Build both the browser client and room server:
+
+```bash
+npm run build:all
+```
+
+Run the bundled room server after building:
+
+```bash
+npm run server:start
+```
+
+Server configuration uses environment variables:
+
+```text
+PORT=3001
+CLIENT_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+RELAY_TEMP_DIR=/path/to/private/temporary-storage
+RELAY_ROOM_QUOTA_MB=200
+```
+
+`RELAY_TEMP_DIR` is optional and defaults to the operating system's temporary
+directory. It must not be web-served directly. Relay files are accessible only
+through short-lived room-scoped transfer tickets.
+
+The browser client defaults to `http://localhost:3001`. Override that endpoint
+when starting or building Vite with:
+
+```text
+VITE_MULTIPLAYER_SERVER_URL=https://rooms.example.com
+```
+
+Rooms currently live only in server memory. Restarting the process closes all
+rooms.
+
+To test Stage 6, run `npm run server:dev` and `npm run dev` in separate
+terminals. Open two browser windows, host from one, and join the displayed room
+code from the other. The lobby should update both player lists immediately.
+
+For Stage 7, select **Choose a song** as the host, import or open the normal
+local library, and choose a difficulty. Both clients should return to the lobby
+with identical song, artist, difficulty, meter, tap count, and selection
+revision. Guests cannot open the host selection controls.
+
+For Stage 8, each player imports their own local copy of the song library. The
+lobby reports Chart matched, Song missing, Chart missing, Chart mismatch, or
+Audio missing for each player. The host can begin the ready check only when
+every connected player has the exact chart hash and local audio; the server
+then validates each Ready action.
 
 ## Importing songs
 
@@ -358,6 +458,8 @@ src/
 │   └── KeyboardInput.ts
 ├── library/
 │   ├── AssetMatcher.ts
+│   ├── ChartAvailabilityIndex.ts
+│   ├── ChartIdentityService.ts
 │   ├── FileUtilities.ts
 │   ├── FolderImporter.ts
 │   └── LibraryBuilder.ts
@@ -387,6 +489,21 @@ src/
 │   └── renderAppShell.ts
 ├── main.ts
 └── style.css
+
+shared/
+├── constants.ts
+├── index.ts
+├── schemas.test.ts
+└── schemas.ts
+
+server/
+├── config.ts
+├── createDanceVisionServer.ts
+├── index.ts
+├── roomRegistry.ts
+└── domain/
+    ├── roomStateMachine.test.ts
+    └── roomStateMachine.ts
 ```
 
 ## Performance work completed
@@ -426,14 +543,42 @@ Runtime diagnostics include:
 - Foot positions are not yet calibrated to an individual player's movement
   range.
 - Only tap-note gameplay is reliable.
-- Automated tests are not yet comprehensive.
+- Multiplayer protocol and room-state tests are in place; existing gameplay,
+  camera, and browser flows are not yet comprehensively automated.
 - Browser and device performance can vary substantially.
 
 ## Future roadmap
 
-The recommended order is important: profiles and score records establish the
-data model, while a player/session abstraction prevents local and online co-op
-from duplicating single-player logic.
+Synchronous online gameplay is the current priority. Its protocol is specified
+before implementation so room behavior remains server-authoritative without
+coupling sockets to the working game, camera, audio, or rendering pipelines.
+
+### Active multiplayer roadmap
+
+- [x] Stage 1: protocol, room lifecycle, and identity specification
+- [x] Stage 2: shared schemas and pure room state machine
+- [x] Stage 3: chart identity and local availability index
+- [x] Stage 4: minimal Node.js and Socket.IO room server
+- [x] Stage 5: client transport and session abstraction
+- [x] Stage 6: mode selection and host/join lobby
+- [x] Stage 7: host-controlled selection synchronization
+- [x] Stage 8: guest chart matching and ready check
+- [x] R1: shared host-asset relay contract
+- [x] R2: authenticated temporary asset relay server
+- [x] R3: shared artwork and modal preview clips
+- [x] R4: full audio and normalized chart-package transfer
+- [x] R5: per-player difficulty selection and relay-based readiness
+- [x] R6: clock synchronization
+- [x] R7: prepared gameplay and synchronized start
+- [x] R8: live score sidebar
+- [x] R9: multiplayer results, replay, and selection return
+- [ ] R10: disconnect, refresh, cleanup, and deployment hardening
+
+See [`docs/MULTIPLAYER_PROTOCOL.md`](docs/MULTIPLAYER_PROTOCOL.md) for the
+authoritative Stage 1 decisions and Stage 2 acceptance contract.
+
+The longer-term profile, persistence, local co-op, and account work remains
+valuable and can follow the multiplayer MVP.
 
 ### Phase 1: Profiles and saved scores
 
@@ -574,10 +719,9 @@ streaming webcam video or blocking local gameplay on every remote update.
 
 ## Recommended next milestone
 
-Start with profiles and local score persistence, followed immediately by the
-player/session abstraction. That creates the foundation needed for both local
-and online co-op without coupling the current single-player game directly to a
-specific backend.
+Continue with R10 resilience work: preserve player identity through refresh and
+temporary disconnects, cancel unsafe countdowns, restore canonical room state,
+and harden relay cleanup and deployment behavior.
 
 ## Inspiration
 

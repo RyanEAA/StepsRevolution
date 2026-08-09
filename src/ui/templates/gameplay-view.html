@@ -204,6 +204,10 @@
       </details>
 
       <div class="gameplay-stage">
+        <div id="multiplayer-countdown-overlay" class="multiplayer-countdown-overlay" hidden>
+          <strong id="multiplayer-countdown-value">3</strong>
+          <span>Get ready</span>
+        </div>
 
         <div class="game-container">
 
@@ -216,6 +220,11 @@
           <canvas id="game-canvas" aria-label="Rhythm game playfield"></canvas>
 
         </div>
+
+        <aside id="multiplayer-score-sidebar" class="multiplayer-score-sidebar" aria-labelledby="multiplayer-score-title" hidden>
+          <h3 id="multiplayer-score-title">Room scores</h3>
+          <ol id="multiplayer-score-list" class="multiplayer-score-list"></ol>
+        </aside>
 
         <aside id="game-debug-panel" class="game-debug-panel">
           <div class="game-debug-panel__header">

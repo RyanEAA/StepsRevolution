@@ -1,0 +1,109 @@
+<section id="mode-selection-view" class="app-view multiplayer-view" aria-labelledby="mode-selection-title" hidden>
+  <div class="view-heading">
+    <div>
+      <p class="eyebrow">Choose how to play</p>
+      <h2 id="mode-selection-title">Start a dance session</h2>
+      <p class="view-description">Play locally, create a room for friends, or join with a six-character room code.</p>
+    </div>
+  </div>
+
+  <div class="mode-card-grid">
+    <button id="single-player-mode-button" type="button" class="mode-card">
+      <span class="mode-card__eyebrow">Offline</span>
+      <strong>Single Player</strong>
+      <span>Use the complete local library and gameplay flow.</span>
+    </button>
+    <button id="host-session-mode-button" type="button" class="mode-card">
+      <span class="mode-card__eyebrow">Online</span>
+      <strong>Host Session</strong>
+      <span>Create a room code and invite other players.</span>
+    </button>
+    <button id="join-session-mode-button" type="button" class="mode-card">
+      <span class="mode-card__eyebrow">Online</span>
+      <strong>Join Session</strong>
+      <span>Enter a friend's room code and wait in the lobby.</span>
+    </button>
+  </div>
+
+  <form id="host-session-form" class="session-form" hidden>
+    <div>
+      <label for="host-display-name">Display name</label>
+      <input id="host-display-name" name="displayName" type="text" minlength="1" maxlength="32" autocomplete="nickname" required>
+    </div>
+    <div class="session-form__actions">
+      <button type="submit" class="primary-button">Create room</button>
+      <button type="button" class="secondary-button session-form-cancel">Cancel</button>
+    </div>
+  </form>
+
+  <form id="join-session-form" class="session-form" hidden>
+    <div>
+      <label for="join-display-name">Display name</label>
+      <input id="join-display-name" name="displayName" type="text" minlength="1" maxlength="32" autocomplete="nickname" required>
+    </div>
+    <div>
+      <label for="join-room-code">Room code</label>
+      <input id="join-room-code" class="room-code-input" name="roomCode" type="text" minlength="6" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" required>
+    </div>
+    <div class="session-form__actions">
+      <button type="submit" class="primary-button">Join room</button>
+      <button type="button" class="secondary-button session-form-cancel">Cancel</button>
+    </div>
+  </form>
+
+  <p id="multiplayer-form-status" class="session-status" aria-live="polite"></p>
+</section>
+
+<section id="multiplayer-lobby-view" class="app-view multiplayer-view" aria-labelledby="multiplayer-lobby-title" hidden>
+  <div class="lobby-header">
+    <div>
+      <p class="eyebrow">Multiplayer lobby</p>
+      <h2 id="multiplayer-lobby-title">Room <span id="multiplayer-room-code">------</span></h2>
+      <p id="multiplayer-connection-status" class="session-status" aria-live="polite">Connecting…</p>
+    </div>
+    <button id="leave-room-button" type="button" class="secondary-button">Leave room</button>
+  </div>
+
+  <div class="lobby-layout">
+    <section class="lobby-panel" aria-labelledby="lobby-players-title">
+      <div class="lobby-panel__heading">
+        <h3 id="lobby-players-title">Players</h3>
+        <span id="lobby-player-count">0 players</span>
+      </div>
+      <ul id="multiplayer-player-list" class="player-list"></ul>
+    </section>
+
+    <section class="lobby-panel lobby-next-step" aria-labelledby="lobby-next-title">
+      <p class="eyebrow">Room status</p>
+      <h3 id="lobby-next-title">Waiting in the lobby</h3>
+      <p id="lobby-role-message">The host can choose a song for the room.</p>
+      <button id="host-song-selection-button" type="button" class="primary-button" hidden>Choose a song</button>
+      <button id="local-library-import-button" type="button" class="secondary-button">Import or replace local library</button>
+      <button id="begin-ready-check-button" type="button" class="primary-button" hidden>Begin ready check</button>
+      <button id="cancel-ready-check-button" type="button" class="secondary-button" hidden>Cancel ready check</button>
+      <button id="player-ready-button" type="button" class="primary-button" hidden>Ready</button>
+      <button id="start-countdown-button" type="button" class="primary-button" hidden>Start synchronized countdown</button>
+      <button id="retry-song-transfer-button" type="button" class="secondary-button" hidden>Retry song preparation</button>
+      <p id="ready-check-status" class="session-status" aria-live="polite"></p>
+      <p class="lobby-note">Keep this tab open. Temporary connection losses will automatically attempt to restore your player identity.</p>
+    </section>
+
+    <section class="lobby-panel lobby-selection" aria-labelledby="lobby-selection-title">
+      <div class="lobby-panel__heading">
+        <h3 id="lobby-selection-title">Room selection</h3>
+        <span id="lobby-selection-revision">Not selected</span>
+      </div>
+      <div id="lobby-selection-empty" class="lobby-selection__empty">The host has not selected a chart yet.</div>
+      <div id="lobby-selection-details" hidden>
+        <strong id="lobby-selection-song"></strong>
+        <span id="lobby-selection-artist"></span>
+        <span id="lobby-selection-chart"></span>
+      </div>
+      <div id="lobby-difficulty-section" class="lobby-difficulty" hidden>
+        <h4>Choose your difficulty</h4>
+        <div id="lobby-difficulty-list" class="song-card__difficulty-list"></div>
+      </div>
+      <p id="lobby-selection-status" class="session-status" aria-live="polite"></p>
+    </section>
+  </div>
+</section>

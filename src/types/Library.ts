@@ -1,5 +1,42 @@
 import type { StepManiaSimfile } from "./Chart";
 
+export type ChartIdentityState =
+    | "unindexed"
+    | "hashing"
+    | "available"
+    | "failed";
+
+interface ChartIdentityRecordBase {
+    chartIndex: number;
+    state: ChartIdentityState;
+}
+
+export interface PendingChartIdentityRecord
+    extends ChartIdentityRecordBase {
+    state: "unindexed" | "hashing";
+}
+
+export interface AvailableChartIdentityRecord
+    extends ChartIdentityRecordBase {
+    state: "available";
+    songId: string;
+    chartId: string;
+    chartHash: string;
+    tapCount: number;
+    durationSeconds: number;
+}
+
+export interface FailedChartIdentityRecord
+    extends ChartIdentityRecordBase {
+    state: "failed";
+    error: string;
+}
+
+export type ChartIdentityRecord =
+    | PendingChartIdentityRecord
+    | AvailableChartIdentityRecord
+    | FailedChartIdentityRecord;
+
 export interface ImportedFile {
     file: File;
     relativePath: string;
@@ -21,6 +58,7 @@ export interface SongEntry {
 
     simfile: StepManiaSimfile;
     simfileFile: File;
+    chartIdentities: ChartIdentityRecord[];
 
     audioFile: File | null;
     bannerFile: File | null;

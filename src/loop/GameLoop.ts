@@ -128,7 +128,7 @@ export class GameLoop {
       this.audioClock.getStatus() === "finished" &&
       this.game.getState().status === "playing"
     ) {
-      this.game.pause();
+      this.game.completeAfterAudioEnd();
     }
 
     const currentFramesPerSecond =

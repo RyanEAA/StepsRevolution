@@ -79,6 +79,10 @@ export class KeyboardInput implements InputSource {
             return;
         }
 
+        if (this.isEditableTarget(event.target)) {
+            return;
+        }
+
         event.preventDefault();
         this.pressedKeys.add(event.code);
     };
@@ -88,8 +92,13 @@ export class KeyboardInput implements InputSource {
             return;
         }
 
-        event.preventDefault();
         this.pressedKeys.delete(event.code);
+
+        if (this.isEditableTarget(event.target)) {
+            return;
+        }
+
+        event.preventDefault();
     };
 
     private readonly handleWindowBlur = (): void => {
@@ -107,6 +116,19 @@ export class KeyboardInput implements InputSource {
             code === "KeyD" ||
             code === "ArrowLeft" ||
             code === "ArrowRight"
+        );
+    }
+
+    private isEditableTarget(target: EventTarget | null): boolean {
+        if (!(target instanceof HTMLElement)) {
+            return false;
+        }
+
+        return (
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement ||
+            target instanceof HTMLSelectElement ||
+            target.isContentEditable
         );
     }
 

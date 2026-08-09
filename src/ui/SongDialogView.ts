@@ -16,6 +16,7 @@ export class SongDialogView {
   private readonly pack: HTMLElement;
   private readonly previewStatus: HTMLElement;
   private readonly difficultyList: HTMLElement;
+  private readonly difficultyHeading: HTMLElement;
   private readonly playButton: HTMLButtonElement;
 
   private callbacks: SongDialogViewCallbacks | null = null;
@@ -30,6 +31,7 @@ export class SongDialogView {
     this.pack = this.requireElement<HTMLElement>("#selected-song-pack");
     this.previewStatus = this.requireElement<HTMLElement>("#selected-song-preview-status");
     this.difficultyList = this.requireElement<HTMLElement>("#library-difficulty-list");
+    this.difficultyHeading = this.requireElement<HTMLElement>("#song-dialog-difficulty-heading");
     this.playButton = this.requireElement<HTMLButtonElement>("#play-selected-song-button");
   }
 
@@ -85,6 +87,24 @@ export class SongDialogView {
     if (this.previewStatus.textContent !== status) {
       this.previewStatus.textContent = status;
     }
+  }
+
+  public setActionLabel(label: string): void {
+    this.playButton.textContent = label;
+  }
+
+  public setSongOnlyMode(enabled: boolean, canConfirm = false): void {
+    this.difficultyHeading.hidden = true;
+    this.difficultyList.hidden = true;
+    this.playButton.disabled = !canConfirm;
+    this.playButton.textContent = enabled ? "Confirm song for room" : "Choose difficulty";
+  }
+
+  public showDifficultySelection(): void {
+    this.difficultyHeading.hidden = false;
+    this.difficultyList.hidden = false;
+    this.playButton.textContent = "Play selected difficulty";
+    this.playButton.disabled = true;
   }
 
   public selectDifficulty(chartIndex: number, canPlay: boolean): void {

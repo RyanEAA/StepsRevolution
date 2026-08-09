@@ -88,6 +88,7 @@
 }
 
 .gameplay-stage {
+    position: relative;
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -117,6 +118,62 @@
     box-shadow:
         0 28px 80px rgba(0, 0, 0, 0.38),
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.multiplayer-score-sidebar {
+    flex: 0 0 230px;
+    padding: 16px;
+    background: rgba(10, 16, 31, 0.92);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-large);
+}
+
+.multiplayer-score-sidebar h3,
+.multiplayer-standings h3 {
+    margin: 0 0 12px;
+}
+
+.multiplayer-score-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.multiplayer-score-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+}
+
+.multiplayer-score-item--local {
+    border-color: rgba(145, 169, 255, 0.55);
+}
+
+.multiplayer-score-item__identity {
+    display: grid;
+    min-width: 0;
+}
+
+.multiplayer-score-item__identity strong,
+.multiplayer-score-item__identity small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multiplayer-score-item__identity small {
+    color: var(--text-muted);
+}
+
+.multiplayer-score-item__score {
+    font-variant-numeric: tabular-nums;
 }
 
 #game-canvas {

@@ -7,6 +7,7 @@ import type {
 
 import { SimfileParser } from "../stepmania/SimfileParser";
 import { AssetMatcher } from "./AssetMatcher";
+import { ChartIdentityService } from "./ChartIdentityService";
 
 import {
     createStableId,
@@ -29,6 +30,8 @@ interface PackGroup {
 export class LibraryBuilder {
     private readonly parser = new SimfileParser();
     private readonly assetMatcher = new AssetMatcher();
+    private readonly chartIdentityService =
+        new ChartIdentityService();
 
     public async build(
         importedFiles: readonly ImportedFile[],
@@ -62,6 +65,14 @@ export class LibraryBuilder {
                     }
 
                     songs.push(song);
+
+                    for (const identity of song.chartIdentities) {
+                        if (identity.state === "failed") {
+                            warnings.push(
+                                `Could not index chart ${identity.chartIndex + 1} in "${songFolder.relativeFolderPath}": ${identity.error}`,
+                            );
+                        }
+                    }
                 } catch (error) {
                     skippedSongFolders += 1;
 
@@ -252,6 +263,11 @@ export class LibraryBuilder {
             );
         }
 
+        const chartIdentities =
+            await this.chartIdentityService.indexSimfile(
+                simfile,
+            );
+
         const folderParts =
             getPathParts(
                 songFolder.relativeFolderPath,
@@ -306,6 +322,8 @@ export class LibraryBuilder {
             simfile,
             simfileFile:
                 simfileImportedFile.file,
+
+            chartIdentities,
 
             audioFile:
                 audioImportedFile?.file ??

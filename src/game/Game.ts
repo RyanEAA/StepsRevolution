@@ -109,6 +109,33 @@ export class Game {
         this.state.status = "playing";
     }
 
+    public completeAfterAudioEnd(): void {
+        if (this.state.status !== "playing") {
+            return;
+        }
+
+        this.update(
+            this.chartEndTimeSeconds + CHART_FINISH_DELAY_SECONDS,
+            {
+                leftX: 0,
+                rightX: 0,
+                leftVisible: false,
+                rightVisible: false,
+                timestampMs: performance.now(),
+            },
+        );
+
+        /*
+         * Audio duration and chart timing can differ slightly. Once the
+         * authoritative audio source has ended there is no later frame in
+         * which a note can be played, so the terminal state must not become
+         * paused and strand multiplayer result reporting.
+         */
+        if (this.state.status === "playing") {
+            this.state.status = "finished";
+        }
+    }
+
     public update(
         songTimeSeconds: number,
         footState: FootState,

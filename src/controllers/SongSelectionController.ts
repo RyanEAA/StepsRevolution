@@ -6,6 +6,9 @@ import { SongDialogView } from "../ui/SongDialogView";
 
 export interface SongSelectionControllerCallbacks {
   onPlaySong(song: SongEntry, chart: StepManiaChart): void;
+  onConfirmSong?(song: SongEntry): void;
+  onPreviewOpened?(song: SongEntry): void;
+  onPreviewClosed?(): void;
 }
 
 export class SongSelectionController {
@@ -16,6 +19,7 @@ export class SongSelectionController {
 
   private selectedSong: SongEntry | null = null;
   private selectedChart: StepManiaChart | null = null;
+  private songOnlyMode = false;
 
   public constructor(
     dialogView: SongDialogView,
@@ -50,8 +54,12 @@ export class SongSelectionController {
     this.dialogView.showSong(song, this.formatBpmRange(song.simfile.bpmSegments.map((segment) => segment.bpm)));
     this.dialogView.setPreviewStatus(song.audioFile ? "♪ Preview loading..." : "Preview unavailable");
     this.dialogView.open();
+    this.dialogView.setSongOnlyMode(this.songOnlyMode, Boolean(
+      song.audioFile && (!this.songOnlyMode || song.chartIdentities.some((record) => record.state === "available")),
+    ));
 
     void this.playPreview(song);
+    this.callbacks.onPreviewOpened?.(song);
   }
 
   public handlePackSelected(): void {
@@ -65,6 +73,7 @@ export class SongSelectionController {
     this.previewPlayer.stop();
     this.dialogView.close();
     this.dialogView.setPreviewStatus("Preview stopped");
+    this.callbacks.onPreviewClosed?.();
 
     if (clearSelection) {
       this.selectedSong = null;
@@ -75,6 +84,13 @@ export class SongSelectionController {
 
   public clearSelection(): void {
     this.closeDialog(true);
+  }
+
+  public setRoomSelectionMode(enabled: boolean): void {
+    this.songOnlyMode = enabled;
+    this.dialogView.setSongOnlyMode(enabled, Boolean(
+      this.selectedSong?.audioFile && (!enabled || this.selectedSong.chartIdentities.some((record) => record.state === "available")),
+    ));
   }
 
   public destroy(): void {
@@ -102,6 +118,17 @@ export class SongSelectionController {
   private playSelectedSong(): void {
     const song = this.selectedSong;
     const chart = this.selectedChart;
+
+    if (this.songOnlyMode && song?.audioFile) {
+      this.closeDialog();
+      this.callbacks.onConfirmSong?.(song);
+      return;
+    }
+
+    if (song?.audioFile && !chart) {
+      this.dialogView.showDifficultySelection();
+      return;
+    }
 
     if (!song || !chart || !song.audioFile) {
       return;

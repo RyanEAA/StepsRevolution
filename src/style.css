@@ -24,3 +24,6 @@
 
 /* camera controls, preview, pose overlay, tracking diagnostics */
 @import "src/styles/camera.css";
+
+/* mode selection, host/join forms, and multiplayer lobby */
+@import "src/styles/multiplayer.css";
