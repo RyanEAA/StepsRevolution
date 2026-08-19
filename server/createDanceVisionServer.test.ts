@@ -16,6 +16,13 @@ import type {
 } from "../shared/schemas";
 import { DanceVisionServer } from "./createDanceVisionServer";
 
+import { AssetRelayError, AssetRelayService } from "./assetRelayService";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+const roots: string[] = [];
+
 let server: DanceVisionServer | null = null;
 const clients: ClientSocket[] = [];
 
@@ -27,6 +34,13 @@ afterEach(async () => {
     if (server) {
         await server.stop();
         server = null;
+    }
+
+    for (const root of roots.splice(0)) {
+        await rm(root, {
+            recursive: true,
+            force: true,
+        });
     }
 });
 
@@ -322,5 +336,67 @@ describe("Dance Vision room server", () => {
 
         await waitUntil(() => server?.getRoomCount() === 0);
         expect(server?.getRoomCount()).toBe(0);
+    });
+
+    it("releases room quota when an asset is deleted", async () => {
+        const rootDirectory = await mkdtemp(
+            join(tmpdir(), "dance-vision-relay-delete-"),
+        );
+        roots.push(rootDirectory);
+
+        let nextAsset = 0;
+
+        const relay = new AssetRelayService({
+            rootDirectory,
+            roomQuotaBytes: 8,
+            createAssetId: () =>
+                `asset_${String(++nextAsset).padStart(16, "0")}`,
+            createTicket: () =>
+                `${nextAsset}`.padEnd(64, "t"),
+        });
+
+        await relay.start();
+
+        const first = relay.reserveUpload(
+            "room-1",
+            "host-1",
+            {
+                kind: "artwork",
+                mimeType: "image/png",
+                byteLength: 8,
+                sha256: `sha256:${"a".repeat(64)}`,
+            },
+        );
+
+        expect(() =>
+            relay.reserveUpload(
+                "room-1",
+                "host-1",
+                {
+                    kind: "artwork",
+                    mimeType: "image/png",
+                    byteLength: 1,
+                    sha256: `sha256:${"b".repeat(64)}`,
+                },
+            ),
+        ).toThrowError(AssetRelayError);
+
+        await relay.deleteAsset(
+            "room-1",
+            first.asset.assetId,
+        );
+
+        expect(() =>
+            relay.reserveUpload(
+                "room-1",
+                "host-1",
+                {
+                    kind: "artwork",
+                    mimeType: "image/png",
+                    byteLength: 1,
+                    sha256: `sha256:${"b".repeat(64)}`,
+                },
+            ),
+        ).not.toThrow();
     });
 });

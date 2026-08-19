@@ -291,6 +291,42 @@ export class AssetRelayService {
         }
     }
 
+    public async deleteAsset(
+        roomId: string,
+        assetId: string,
+    ): Promise<void> {
+        const record = this.assets.get(assetId);
+
+        if (!record || record.roomId !== roomId) {
+            return;
+        }
+
+        this.assets.delete(assetId);
+
+        for (const [ticket, value] of this.tickets) {
+            if (value.assetId === assetId) {
+                this.tickets.delete(ticket);
+            }
+        }
+
+        if (record.filePath) {
+            await rm(record.filePath, {
+                force: true,
+            });
+        }
+
+        const hasRemainingAssets = [...this.assets.values()].some(
+            (candidate) => candidate.roomId === roomId,
+        );
+
+        if (!hasRemainingAssets) {
+            await rm(this.roomDirectory(roomId), {
+                recursive: true,
+                force: true,
+            });
+        }
+    }
+
     public async cleanupExpired(): Promise<void> {
         const nowMs = this.now();
         for (const [ticket, value] of this.tickets) {

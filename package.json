@@ -12,7 +12,9 @@
     "server:dev": "tsx watch server/index.ts",
     "server:build": "tsup server/index.ts --format esm --platform node --out-dir dist-server --clean",
     "server:start": "node dist-server/index.js",
-    "build:all": "npm run build && npm run server:build"
+    "build:all": "npm run build && npm run server:build",
+    "heroku-postbuild": "npm run build:all",
+    "start": "node dist-server/index.js"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
@@ -27,5 +29,8 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "zod": "^4.4.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

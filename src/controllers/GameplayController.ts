@@ -16,6 +16,7 @@ export interface GameplayControllerCallbacks {
   reportOnlineFinished?: () => Promise<void>;
   handleOnlineReplay?: () => Promise<void>;
   handleOnlineChooseSong?: () => Promise<void>;
+  stopCamera: () => void;
 }
 
 export interface GameplayControllerDependencies {
@@ -320,6 +321,7 @@ export class GameplayController {
     this.resultsMaxCombo.textContent = score.maxCombo.toString();
 
     this.audioClock.stop();
+    this.callbacks.stopCamera();
     this.viewManager.show("results");
     if (this.sessionManager.getActiveSession().kind === "online") {
       this.resultsReplayButton.disabled = true;

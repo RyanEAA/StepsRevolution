@@ -87,6 +87,10 @@ export class RoomRegistry {
         return this.rooms.size;
     }
 
+    public getRoomState(roomId: string): RoomState | null {
+        return this.rooms.get(roomId)?.state ?? null;
+    }
+
     public getMembership(socketId: string): Membership | null {
         return this.memberships.get(socketId) ?? null;
     }
@@ -499,6 +503,8 @@ export class RoomRegistry {
         return effects;
     }
 
+
+
     private toRoomAction(
         command: Exclude<
             ClientCommand,
@@ -706,6 +712,7 @@ export class RoomRegistry {
             }
         }
     }
+
 }
 
 function createRandomRoomCode(): string {
@@ -719,3 +726,5 @@ function createRandomRoomCode(): string {
 
     return code;
 }
+
+

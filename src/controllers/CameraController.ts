@@ -196,6 +196,11 @@ export class CameraController {
       return;
     }
 
+    if (requestedMode === "keyboard") {
+      this.stopCamera();
+      return;
+    }
+
     this.setInputMode(requestedMode);
   };
 
@@ -277,11 +282,7 @@ export class CameraController {
       return;
     }
 
-    this.setCameraStatus(
-      this.cameraManager.isRunning()
-        ? "Keyboard input selected. Camera preview remains active."
-        : "Keyboard input is active.",
-    );
+    this.setCameraStatus("Keyboard input is active.");
   }
 
   private async refreshCameraList(): Promise<void> {
@@ -350,7 +351,7 @@ export class CameraController {
     }
   }
 
-  private stopCamera(): void {
+  public stopCamera(): void {
     this.cameraManager.stop();
     this.cameraDisableButton.disabled = true;
     this.cameraDeviceSelect.disabled = true;

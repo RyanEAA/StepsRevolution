@@ -151,22 +151,48 @@ npm run server:start
 Server configuration uses environment variables:
 
 ```text
+HOST=127.0.0.1
 PORT=3001
 CLIENT_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 RELAY_TEMP_DIR=/path/to/private/temporary-storage
 RELAY_ROOM_QUOTA_MB=200
+RELAY_ASSET_TTL_MINUTES=30
 ```
+
+`HOST` defaults to `127.0.0.1`. Keep this value in production when Nginx is
+proxying requests to the room server locally. Use `0.0.0.0` only when you
+intentionally need the Node server reachable directly from another machine,
+such as controlled LAN development.
 
 `RELAY_TEMP_DIR` is optional and defaults to the operating system's temporary
 directory. It must not be web-served directly. Relay files are accessible only
 through short-lived room-scoped transfer tickets.
 
-The browser client defaults to `http://localhost:3001`. Override that endpoint
-when starting or building Vite with:
+`RELAY_ROOM_QUOTA_MB` limits the total temporary relay assets reserved by one
+room. The default is 200 MiB.
 
-```text
-VITE_MULTIPLAYER_SERVER_URL=https://rooms.example.com
-```
+`RELAY_ASSET_TTL_MINUTES` controls how long temporary relay assets remain
+available before expiry. The default is 30 minutes. Expired assets are cleaned
+periodically by the server.
+
+Production should set `RELAY_TEMP_DIR` to a private directory that is writable
+by the Dance Vision service user and is not served directly by Nginx.
+
+The browser client uses `http://localhost:3001` during Vite development.
+
+In production, if `VITE_MULTIPLAYER_SERVER_URL` is not defined, the client uses
+the page's current origin. This is the recommended deployment topology when
+Nginx serves the Vite application and proxies Socket.IO and relay requests on
+the same HTTPS domain.
+
+For example:
+
+https://dance.example.com/
+https://dance.example.com/socket.io/
+https://dance.example.com/relay/assets/
+
+`VITE_MULTIPLAYER_SERVER_URL` remains available when the multiplayer server
+intentionally uses a different public origin.
 
 Rooms currently live only in server memory. Restarting the process closes all
 rooms.

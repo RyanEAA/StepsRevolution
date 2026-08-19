@@ -1,0 +1,25 @@
+[Unit]
+Description=Dance Vision Multiplayer Server
+After=network.target
+
+[Service]
+Type=simple
+
+User=dancevision
+Group=dancevision
+
+WorkingDirectory=/srv/dance-vision/app
+
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/dance-vision/dance-vision.env
+
+ExecStart=/usr/bin/node /srv/dance-vision/app/dist-server/index.js
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

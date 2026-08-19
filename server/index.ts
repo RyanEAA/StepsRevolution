@@ -4,11 +4,12 @@ import { loadServerConfig } from "./config";
 const config = loadServerConfig();
 const server = new DanceVisionServer({
     port: config.port,
-    host: "0.0.0.0",
+    host: config.host,
     allowedOrigins: config.allowedOrigins,
     assetRelayOptions: {
         rootDirectory: config.relayTempDirectory,
         roomQuotaBytes: config.relayRoomQuotaBytes,
+        assetTtlMs: config.relayAssetTtlMs,
     },
 });
 

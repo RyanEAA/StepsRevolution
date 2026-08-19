@@ -51,8 +51,18 @@ renderAppShell();
 
 const localSession = new LocalSession();
 const sessionManager = new SessionManager(localSession);
-const multiplayerServerUrl = import.meta.env.VITE_MULTIPLAYER_SERVER_URL ?? "http://localhost:3001";
-const multiplayerClient = new MultiplayerClient({ serverUrl: multiplayerServerUrl });
+const configuredMultiplayerServerUrl =
+  import.meta.env.VITE_MULTIPLAYER_SERVER_URL?.trim();
+
+const multiplayerServerUrl =
+  configuredMultiplayerServerUrl ||
+  (import.meta.env.PROD
+    ? window.location.origin
+    : "http://localhost:3001");
+
+const multiplayerClient = new MultiplayerClient({
+  serverUrl: multiplayerServerUrl,
+});
 const roomSession = new RoomSession({
   client: multiplayerClient,
   credentialStore: new ReconnectCredentialStore(sessionStorage),
@@ -412,6 +422,7 @@ gameplayController = new GameplayController({
     closeSongDialog: () => songSelectionController.closeDialog(),
     hasLoadedLibrary: () => loadedLibrary !== null,
     hasSelectedPack: () => libraryView.getSelectedPack() !== null,
+    stopCamera: () => cameraController.stopCamera(),
     reportOnlineFinished: async () => {
       const room = roomSession.getState().room;
       if (!room) throw new Error("The multiplayer room is unavailable.");
