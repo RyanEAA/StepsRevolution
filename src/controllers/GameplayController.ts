@@ -17,6 +17,7 @@ export interface GameplayControllerCallbacks {
   handleOnlineReplay?: () => Promise<void>;
   handleOnlineChooseSong?: () => Promise<void>;
   stopCamera: () => void;
+  prepareInputForGameplay: () => Promise<void>;
 }
 
 export interface GameplayControllerDependencies {
@@ -27,7 +28,6 @@ export interface GameplayControllerDependencies {
   runtimeChartBuilder: RuntimeChartBuilder;
   sessionManager: SessionManager;
   callbacks: GameplayControllerCallbacks;
-  navGameButton: HTMLButtonElement;
 }
 
 export class GameplayController {
@@ -38,7 +38,6 @@ export class GameplayController {
   private readonly runtimeChartBuilder: RuntimeChartBuilder;
   private readonly sessionManager: SessionManager;
   private readonly callbacks: GameplayControllerCallbacks;
-  private readonly navGameButton: HTMLButtonElement;
 
   private readonly gameplayTitle: HTMLElement;
   private readonly gameplaySongArtist: HTMLElement;
@@ -72,7 +71,6 @@ export class GameplayController {
     this.runtimeChartBuilder = dependencies.runtimeChartBuilder;
     this.sessionManager = dependencies.sessionManager;
     this.callbacks = dependencies.callbacks;
-    this.navGameButton = dependencies.navGameButton;
 
     this.gameplayTitle = this.requireElement<HTMLElement>("#gameplay-title");
     this.gameplaySongArtist = this.requireElement<HTMLElement>("#gameplay-song-artist");
@@ -101,7 +99,6 @@ export class GameplayController {
     this.exitGameButton.addEventListener("click", this.handleExitGameClick);
     this.resultsReplayButton.addEventListener("click", this.handleReplayClick);
     this.resultsSongSelectButton.addEventListener("click", this.handleResultsSongSelectClick);
-    this.navGameButton.addEventListener("click", this.handleNavGameClick);
 
     this.updateButtonState();
   }
@@ -114,7 +111,6 @@ export class GameplayController {
     this.exitGameButton.removeEventListener("click", this.handleExitGameClick);
     this.resultsReplayButton.removeEventListener("click", this.handleReplayClick);
     this.resultsSongSelectButton.removeEventListener("click", this.handleResultsSongSelectClick);
-    this.navGameButton.removeEventListener("click", this.handleNavGameClick);
   }
 
   public updateButtonState(): void {
@@ -134,7 +130,6 @@ export class GameplayController {
     this.restartButton.disabled = !canPlay || !controls.localRestart;
     this.resultsReplayButton.disabled = !controls.localReplay;
     this.pauseButton.textContent = gameStatus === "paused" ? "Resume" : "Pause";
-    this.navGameButton.disabled = !canPlay;
 
     this.gameLoop.requestRender();
   }
@@ -208,6 +203,7 @@ export class GameplayController {
       this.audioFileStatus.textContent =
         `${song.audioFile.name} — ${this.formatTime(this.audioClock.getDurationSeconds())}`;
 
+      await this.callbacks.prepareInputForGameplay();
       this.viewManager.show("gameplay");
 
       this.game.start();
@@ -278,6 +274,7 @@ export class GameplayController {
       throw new Error("The shared song and selected difficulty are not prepared.");
     }
     this.cancelOnlineStart(false);
+    await this.callbacks.prepareInputForGameplay();
     await this.audioClock.scheduleFromStart(localPerformanceTimeMs);
     this.viewManager.show("gameplay");
     this.countdownOverlay.hidden = false;
@@ -374,6 +371,7 @@ export class GameplayController {
     }
 
     try {
+      await this.callbacks.prepareInputForGameplay();
       this.game.start();
       this.gameLoop.syncGameStatus();
       await this.audioClock.playFromStart();
@@ -471,8 +469,7 @@ export class GameplayController {
       return;
     }
 
-    this.viewManager.show("gameplay");
-    void this.restart();
+    void this.replayLocalGame();
   };
 
   private readonly handleResultsSongSelectClick = (): void => {
@@ -488,11 +485,16 @@ export class GameplayController {
     this.viewManager.show("song-selection");
   };
 
-  private readonly handleNavGameClick = (): void => {
-    if (this.game.hasChart() && this.audioClock.hasAudio()) {
+
+  private async replayLocalGame(): Promise<void> {
+    try {
+      await this.callbacks.prepareInputForGameplay();
       this.viewManager.show("gameplay");
+      await this.restart();
+    } catch (error) {
+      this.reportAudioError(error);
     }
-  };
+  }
 
   private formatTime(totalSeconds: number): string {
     const minutes = Math.floor(totalSeconds / 60);

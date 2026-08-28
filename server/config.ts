@@ -15,8 +15,6 @@ const DEFAULT_HOST =
 const DEFAULT_PORT = 3001;
 const DEFAULT_RELAY_ROOM_QUOTA_MB = 200;
 
-
-
 export function loadServerConfig(
     environment: NodeJS.ProcessEnv = process.env,
 ): ServerConfig {

@@ -1,6 +1,7 @@
 <section id="library-import-view" class="app-view" aria-labelledby="library-import-title">
-      <div class="view-heading">
-        <div>
+      <div class="view-heading library-section__header">
+        <button id="back-from-library-import-button" type="button" class="back-button">← Back</button>
+        <div class="library-section__heading-copy">
           <p class="eyebrow">StepMania library</p>
 
           <h2 id="library-import-title">
@@ -105,7 +106,9 @@
 
     <section id="pack-selection-section" class="app-view library-section" aria-labelledby="pack-selection-title" hidden>
       <div class="view-heading library-section__header">
-        <div>
+        <button id="back-from-packs-button" type="button" class="back-button">← Back</button>
+
+        <div class="library-section__heading-copy">
           <p class="eyebrow">Song library</p>
 
           <h2 id="pack-selection-title">
@@ -117,8 +120,8 @@
           </p>
         </div>
 
-        <button id="import-another-library-button" type="button" class="secondary-button">
-          Import another library
+        <button id="import-another-library-button" type="button" class="secondary-button library-header-action">
+          Import / browse library
         </button>
       </div>
 
@@ -132,7 +135,7 @@
     <section id="song-selection-section" class="app-view library-section song-selection-view"
       aria-labelledby="song-section-title" hidden>
       <div class="view-heading library-section__header">
-        <button id="back-to-packs-button" type="button" class="secondary-button">
+        <button id="back-to-packs-button" type="button" class="back-button">
           ← Packs
         </button>
 

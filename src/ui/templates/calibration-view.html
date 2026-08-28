@@ -1,0 +1,72 @@
+<section id="calibration-view" class="app-view calibration-view" aria-labelledby="calibration-title" hidden>
+  <header class="settings-header">
+    <button id="calibration-back-button" type="button" class="back-button">← Settings</button>
+    <div>
+      <p class="eyebrow">Camera setup</p>
+      <h2 id="calibration-title">Calibration</h2>
+      <p class="view-description">Keep both feet in frame. Tune thresholds live, or sample a few seconds to get a recommended input confidence.</p>
+    </div>
+  </header>
+
+  <div class="calibration-layout">
+    <section class="calibration-preview-card">
+      <div id="calibration-preview-host" class="calibration-preview-host">
+        <div class="calibration-preview-placeholder">
+          <strong>Camera preview</strong>
+          <span>Enable the camera to begin calibration.</span>
+        </div>
+      </div>
+      <div class="calibration-camera-actions">
+        <button id="calibration-enable-camera" type="button" class="primary-button">Enable camera</button>
+        <button id="calibration-disable-camera" type="button" class="secondary-button" disabled>Disable camera</button>
+      </div>
+      <p id="calibration-status" class="camera-status" aria-live="polite">Camera is off.</p>
+    </section>
+
+    <section class="calibration-readout-card">
+      <div class="calibration-foot-grid">
+        <article class="calibration-foot-card" id="calibration-left-foot-card">
+          <span class="calibration-foot-card__label">Left foot</span>
+          <strong id="calibration-left-state">Not detected</strong>
+          <div class="confidence-meter" aria-hidden="true"><span id="calibration-left-meter"></span></div>
+          <output id="calibration-left-confidence">0.00</output>
+        </article>
+        <article class="calibration-foot-card" id="calibration-right-foot-card">
+          <span class="calibration-foot-card__label">Right foot</span>
+          <strong id="calibration-right-state">Not detected</strong>
+          <div class="confidence-meter" aria-hidden="true"><span id="calibration-right-meter"></span></div>
+          <output id="calibration-right-confidence">0.00</output>
+        </article>
+      </div>
+
+      <div class="calibration-controls">
+        <label class="setting-field setting-field--range">
+          <span class="setting-field__label">Landmark visibility</span>
+          <div class="setting-range-row">
+            <input id="calibration-visibility-threshold" type="range" min="0" max="1" step="0.05" />
+            <output id="calibration-visibility-value">0.50</output>
+          </div>
+        </label>
+        <label class="setting-field setting-field--range">
+          <span class="setting-field__label">Input confidence</span>
+          <div class="setting-range-row">
+            <input id="calibration-foot-confidence-threshold" type="range" min="0" max="1" step="0.05" />
+            <output id="calibration-foot-confidence-value">0.50</output>
+          </div>
+        </label>
+      </div>
+
+      <div class="calibration-recommendation">
+        <div>
+          <span class="calibration-foot-card__label">Recommended input confidence</span>
+          <strong id="calibration-recommended-value">—</strong>
+          <p id="calibration-recommendation-copy">Stand naturally with both feet visible, then sample your tracking.</p>
+        </div>
+        <div class="calibration-recommendation__actions">
+          <button id="calibration-sample-button" type="button" class="secondary-button" disabled>Sample 3 seconds</button>
+          <button id="calibration-use-recommended" type="button" class="primary-button" disabled>Use recommended</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>

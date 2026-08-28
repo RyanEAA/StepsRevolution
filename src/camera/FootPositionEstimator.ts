@@ -50,6 +50,7 @@ interface EstimatedPosition {
 
 export class FootPositionEstimator {
     private visibilityThreshold = 0.5;
+    private minimumFootConfidence = 0.5;
     private readonly coordinateMapper:
         CameraCoordinateMapper;
 
@@ -71,6 +72,20 @@ export class FootPositionEstimator {
 
     public getVisibilityThreshold(): number {
         return this.visibilityThreshold;
+    }
+
+    public setMinimumFootConfidence(
+        threshold: number,
+    ): void {
+        this.minimumFootConfidence = this.clamp(
+            threshold,
+            0,
+            1,
+        );
+    }
+
+    public getMinimumFootConfidence(): number {
+        return this.minimumFootConfidence;
     }
 
     public estimate(
@@ -161,7 +176,9 @@ export class FootPositionEstimator {
                 confidenceTotal /
                 acceptedLandmarkCount,
 
-            visible: true,
+            visible:
+                confidenceTotal / acceptedLandmarkCount >=
+                this.minimumFootConfidence,
         };
     }
 

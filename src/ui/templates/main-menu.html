@@ -1,0 +1,78 @@
+<section id="main-menu-view" class="app-view main-menu-view" aria-labelledby="main-menu-title" hidden>
+  <div class="main-menu-hero">
+    <p class="main-menu-kicker">Camera rhythm game</p>
+    <h2 id="main-menu-title" class="main-menu-title">
+      <span>Dance</span>
+      <span>Vision</span>
+    </h2>
+    <p class="main-menu-tagline">Move your feet. Hit the beat.</p>
+  </div>
+
+  <div class="main-menu-mode-grid" aria-label="Choose how to play">
+    <button id="single-player-mode-button" type="button" class="home-mode-card">
+      <span class="home-mode-card__icon" aria-hidden="true">1</span>
+      <span class="home-mode-card__copy">
+        <span class="home-mode-card__eyebrow">Offline</span>
+        <strong>Single Player</strong>
+        <span>Play solo from your local StepMania library.</span>
+      </span>
+      <span class="home-mode-card__arrow" aria-hidden="true">→</span>
+    </button>
+
+    <button id="host-session-mode-button" type="button" class="home-mode-card">
+      <span class="home-mode-card__icon" aria-hidden="true">◎</span>
+      <span class="home-mode-card__copy">
+        <span class="home-mode-card__eyebrow">Online</span>
+        <strong>Host Multiplayer</strong>
+        <span>Create a room and choose songs for friends.</span>
+      </span>
+      <span class="home-mode-card__arrow" aria-hidden="true">→</span>
+    </button>
+
+    <button id="join-session-mode-button" type="button" class="home-mode-card">
+      <span class="home-mode-card__icon" aria-hidden="true">↗</span>
+      <span class="home-mode-card__copy">
+        <span class="home-mode-card__eyebrow">Online</span>
+        <strong>Join Multiplayer</strong>
+        <span>Enter a room code and dance together.</span>
+      </span>
+      <span class="home-mode-card__arrow" aria-hidden="true">→</span>
+    </button>
+  </div>
+
+  <div class="main-menu-secondary-actions">
+    <button id="main-menu-settings-button" type="button" class="menu-secondary-button">
+      <span aria-hidden="true">⚙</span>
+      <span>Settings</span>
+    </button>
+    <p class="main-menu-status">Input, camera, gameplay, and interface options.</p>
+  </div>
+
+  <form id="host-session-form" class="session-form main-menu-session-form" hidden>
+    <div>
+      <label for="host-display-name">Display name</label>
+      <input id="host-display-name" name="displayName" type="text" minlength="1" maxlength="32" autocomplete="nickname" required>
+    </div>
+    <div class="session-form__actions">
+      <button type="submit" class="primary-button">Create room</button>
+      <button type="button" class="secondary-button session-form-cancel">Cancel</button>
+    </div>
+  </form>
+
+  <form id="join-session-form" class="session-form main-menu-session-form" hidden>
+    <div>
+      <label for="join-display-name">Display name</label>
+      <input id="join-display-name" name="displayName" type="text" minlength="1" maxlength="32" autocomplete="nickname" required>
+    </div>
+    <div>
+      <label for="join-room-code">Room code</label>
+      <input id="join-room-code" class="room-code-input" name="roomCode" type="text" minlength="6" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+    </div>
+    <div class="session-form__actions">
+      <button type="submit" class="primary-button">Join room</button>
+      <button type="button" class="secondary-button session-form-cancel">Cancel</button>
+    </div>
+  </form>
+
+  <p id="multiplayer-form-status" class="multiplayer-form-status" aria-live="polite"></p>
+</section>

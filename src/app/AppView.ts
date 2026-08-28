@@ -1,5 +1,7 @@
 export const APP_VIEWS = [
-    "mode-selection",
+    "main-menu",
+    "settings",
+    "calibration",
     "library-import",
     "pack-selection",
     "song-selection",

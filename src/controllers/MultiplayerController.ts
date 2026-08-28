@@ -124,7 +124,6 @@ export class MultiplayerController {
             onKickPlayer: (playerId) => {
                 void this.runReadyAction(() => this.roomSession.kickPlayer(playerId));
             },
-            onSessionNavigation: this.showSession,
             onBrowseHostLibrary: this.browseHostLibrary,
             onImportLocalLibrary: this.importLocalLibrary,
             onBeginReadyCheck: () => {
@@ -224,15 +223,6 @@ export class MultiplayerController {
         this.viewManager.show(this.getSinglePlayerDestination());
     };
 
-    private readonly showSession = (): void => {
-        if (this.sessionManager.getActiveSession().kind === "online" &&
-            this.roomSession.getState().room) {
-            this.viewManager.show("multiplayer-lobby");
-            return;
-        }
-        this.viewManager.show("mode-selection");
-    };
-
     private readonly browseHostLibrary = (): void => {
         const state = this.roomSession.getState();
         if (!state.room || state.localPlayerId !== state.room.hostPlayerId) {
@@ -317,7 +307,7 @@ export class MultiplayerController {
             this.sessionManager.useLocalSession();
             this.setRoomSelectionMode(false);
             this.view.hideForms();
-            this.viewManager.show("mode-selection");
+            this.viewManager.show("main-menu");
         } catch (error) {
             this.view.setStatus(
                 error instanceof Error
@@ -464,7 +454,7 @@ export class MultiplayerController {
             this.hasJoinedRoom = false;
             this.sessionManager.useLocalSession();
             this.setRoomSelectionMode(false);
-            this.viewManager.show("mode-selection");
+            this.viewManager.show("main-menu");
             if (state.lastError) this.view.setStatus(state.lastError);
         }
     };

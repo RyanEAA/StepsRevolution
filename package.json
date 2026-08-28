@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -14,7 +14,8 @@
     "server:start": "node dist-server/index.js",
     "build:all": "npm run build && npm run server:build",
     "heroku-postbuild": "npm run build:all",
-    "start": "node dist-server/index.js"
+    "start": "node dist-server/index.js",
+    "client:dev": "vite"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

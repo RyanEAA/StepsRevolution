@@ -153,3 +153,17 @@
         flex-basis: auto;
     }
 }
+
+
+/* UI1.1 library browser: retain compact two-column pack browsing on phones. */
+@media (max-width: 760px) {
+    .pack-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 390px) {
+    .pack-grid {
+        grid-template-columns: 1fr;
+    }
+}

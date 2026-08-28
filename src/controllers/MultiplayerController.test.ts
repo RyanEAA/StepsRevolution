@@ -144,7 +144,7 @@ describe("MultiplayerController", () => {
         expect(harness.view.pending).toBe(false);
     });
 
-    it("normalizes join input and returns to mode selection on leave", async () => {
+    it("normalizes join input and returns to the main menu on leave", async () => {
         const harness = createHarness();
 
         harness.view.callbacks?.onJoinSubmitted("abc234", "Guest");
@@ -157,7 +157,7 @@ describe("MultiplayerController", () => {
         expect(harness.roomSession.left).toBe(true);
         expect(harness.roomSession.disconnected).toBe(true);
         expect(harness.sessionManager.active.kind).toBe("local");
-        expect(harness.shown.at(-1)).toBe("mode-selection");
+        expect(harness.shown.at(-1)).toBe("main-menu");
     });
 
     it("debounces host chart choices and publishes the latest identity", async () => {

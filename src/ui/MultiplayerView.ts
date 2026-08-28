@@ -9,7 +9,6 @@ export interface MultiplayerViewCallbacks {
     onCancelForm: () => void;
     onLeaveRoom: () => void;
     onKickPlayer: (playerId: string) => void;
-    onSessionNavigation: () => void;
     onBrowseHostLibrary: () => void;
     onImportLocalLibrary: () => void;
     onBeginReadyCheck: () => void;
@@ -51,7 +50,7 @@ export class MultiplayerView {
     private readonly difficultyList = this.require<HTMLElement>("#lobby-difficulty-list");
     private readonly interactiveElements = Array.from(
         document.querySelectorAll<HTMLButtonElement | HTMLInputElement>(
-            "#mode-selection-view button, #mode-selection-view input, #leave-room-button",
+            "#single-player-mode-button, #host-session-mode-button, #join-session-mode-button, #host-session-form button, #host-session-form input, #join-session-form button, #join-session-form input, #leave-room-button",
         ),
     );
     private callbacks: MultiplayerViewCallbacks | null = null;
@@ -61,7 +60,6 @@ export class MultiplayerView {
         this.require("#single-player-mode-button").addEventListener("click", this.singlePlayer);
         this.require("#host-session-mode-button").addEventListener("click", this.hostSelected);
         this.require("#join-session-mode-button").addEventListener("click", this.joinSelected);
-        this.require("#nav-session-button").addEventListener("click", this.sessionNavigation);
         this.require("#leave-room-button").addEventListener("click", this.leaveRoom);
         this.playerList.addEventListener("click", this.kickPlayer);
         this.hostSongSelectionButton.addEventListener("click", this.browseHostLibrary);
@@ -83,7 +81,6 @@ export class MultiplayerView {
         this.require("#single-player-mode-button").removeEventListener("click", this.singlePlayer);
         this.require("#host-session-mode-button").removeEventListener("click", this.hostSelected);
         this.require("#join-session-mode-button").removeEventListener("click", this.joinSelected);
-        this.require("#nav-session-button").removeEventListener("click", this.sessionNavigation);
         this.require("#leave-room-button").removeEventListener("click", this.leaveRoom);
         this.playerList.removeEventListener("click", this.kickPlayer);
         this.hostSongSelectionButton.removeEventListener("click", this.browseHostLibrary);
@@ -353,7 +350,6 @@ export class MultiplayerView {
     private readonly joinSelected = () => this.callbacks?.onJoinSelected();
     private readonly cancelForm = () => this.callbacks?.onCancelForm();
     private readonly leaveRoom = () => this.callbacks?.onLeaveRoom();
-    private readonly sessionNavigation = () => this.callbacks?.onSessionNavigation();
     private readonly browseHostLibrary = () => this.callbacks?.onBrowseHostLibrary();
     private readonly importLocalLibrary = () => this.callbacks?.onImportLocalLibrary();
     private readonly beginReadyCheck = () => this.callbacks?.onBeginReadyCheck();

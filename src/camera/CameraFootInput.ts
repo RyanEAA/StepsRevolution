@@ -273,6 +273,14 @@ export class CameraFootInput implements InputSource {
         );
     }
 
+    public setMinimumFootConfidence(
+        threshold: number,
+    ): void {
+        this.estimator.setMinimumFootConfidence(
+            threshold,
+        );
+    }
+
     public setInferenceFramesPerSecond(
         framesPerSecond: number,
     ): void {

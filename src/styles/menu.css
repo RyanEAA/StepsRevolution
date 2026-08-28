@@ -1,0 +1,277 @@
+/* =========================================================
+   MAIN MENU
+   Arcade-inspired but intentionally lightweight: CSS gradients,
+   borders, and transform/opacity transitions only.
+   ========================================================= */
+
+.main-menu-view {
+    position: relative;
+    display: grid;
+    align-content: center;
+    gap: 30px;
+    min-height: min(760px, calc(100vh - 118px));
+    padding: clamp(24px, 4vw, 54px);
+    overflow: hidden;
+    background:
+        linear-gradient(rgba(141, 165, 255, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(141, 165, 255, 0.045) 1px, transparent 1px),
+        radial-gradient(circle at 18% 22%, rgba(60, 215, 217, 0.14), transparent 28rem),
+        radial-gradient(circle at 82% 22%, rgba(227, 83, 184, 0.15), transparent 25rem),
+        rgba(6, 10, 23, 0.94);
+    background-size: 28px 28px, 28px 28px, auto, auto, auto;
+    border: 1px solid rgba(141, 165, 255, 0.34);
+    border-radius: 22px;
+}
+
+.main-menu-view::after {
+    position: absolute;
+    inset: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 15px;
+    content: "";
+    pointer-events: none;
+}
+
+.main-menu-hero,
+.main-menu-mode-grid,
+.main-menu-secondary-actions,
+.main-menu-session-form,
+.main-menu-view > .multiplayer-form-status {
+    position: relative;
+    z-index: 1;
+}
+
+.main-menu-hero {
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.main-menu-kicker {
+    margin: 0 0 12px;
+    color: #69e6e8;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.main-menu-title {
+    display: grid;
+    margin: 0;
+    font-size: clamp(3.6rem, 9vw, 7.2rem);
+    font-style: italic;
+    font-weight: 950;
+    letter-spacing: -0.065em;
+    line-height: 0.72;
+    text-transform: uppercase;
+}
+
+.main-menu-title span:first-child {
+    transform: translateX(-0.08em);
+}
+
+.main-menu-title span:last-child {
+    transform: translateX(0.08em);
+    color: #f6f7ff;
+    text-shadow: 0 5px 0 rgba(222, 70, 172, 0.3);
+}
+
+.main-menu-tagline {
+    margin: 24px 0 0;
+    color: var(--text-secondary);
+    font-size: clamp(0.82rem, 2vw, 1rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.main-menu-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: min(980px, 100%);
+    margin: 0 auto;
+}
+
+.home-mode-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 112px;
+    padding: 18px;
+    color: inherit;
+    text-align: left;
+    background: rgba(5, 9, 22, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 15px;
+    cursor: pointer;
+    transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.home-mode-card:hover,
+.home-mode-card:focus-visible {
+    transform: translateY(-2px);
+    background: rgba(15, 24, 47, 0.98);
+    border-color: rgba(91, 229, 232, 0.62);
+}
+
+.home-mode-card__icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: #5ae1e5;
+    background: rgba(90, 225, 229, 0.1);
+    border: 1px solid rgba(90, 225, 229, 0.42);
+    border-radius: 999px;
+    font-weight: 950;
+}
+
+.home-mode-card__copy {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+}
+
+.home-mode-card__eyebrow {
+    color: #9dafff;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.home-mode-card strong {
+    font-size: 0.98rem;
+}
+
+.home-mode-card__copy > span:last-child {
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.home-mode-card__arrow {
+    color: #9ce57e;
+    font-size: 1.25rem;
+    font-weight: 900;
+}
+
+.main-menu-secondary-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+}
+
+.menu-secondary-button,
+.back-button {
+    min-height: 44px;
+    border-radius: 11px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.menu-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-width: 150px;
+    padding: 10px 18px;
+    color: #102027;
+    background: #a9e4eb;
+    border: 1px solid #d7faff;
+}
+
+.menu-secondary-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+}
+
+.main-menu-status {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+
+.main-menu-session-form {
+    width: min(620px, 100%);
+    margin: 0 auto;
+}
+
+.main-menu-view > .multiplayer-form-status {
+    min-height: 1.25em;
+    margin: -18px auto 0;
+    text-align: center;
+}
+
+.back-button {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    color: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    transition: background 120ms ease, border-color 120ms ease;
+}
+
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+@media (max-width: 900px) {
+    .main-menu-mode-grid {
+        grid-template-columns: 1fr;
+        width: min(620px, 100%);
+    }
+
+    .home-mode-card {
+        min-height: 88px;
+    }
+}
+
+@media (max-width: 760px) {
+    .main-menu-view {
+        min-height: calc(100vh - 96px);
+        gap: 24px;
+        padding: 28px 18px;
+        border-radius: 16px;
+    }
+
+    .main-menu-title {
+        font-size: clamp(3.4rem, 19vw, 5.6rem);
+    }
+
+    .home-mode-card {
+        min-height: 84px;
+        padding: 14px;
+    }
+
+    .home-mode-card__copy > span:last-child {
+        font-size: 0.7rem;
+    }
+
+    .main-menu-secondary-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .menu-secondary-button {
+        width: 100%;
+    }
+
+    .main-menu-status {
+        text-align: center;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-mode-card,
+    .back-button {
+        transition: none;
+    }
+}

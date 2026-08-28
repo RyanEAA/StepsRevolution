@@ -112,6 +112,18 @@
             </label>
 
             <label class="camera-control">
+              <span>Input confidence</span>
+
+              <div class="camera-range-control">
+                <input id="camera-foot-confidence" type="range" min="0" max="1" step="0.05" value="0.5" />
+
+                <output id="camera-foot-confidence-value" for="camera-foot-confidence">
+                  0.50
+                </output>
+              </div>
+            </label>
+
+            <label class="camera-control">
               <span>Inference FPS</span>
 
               <div class="camera-range-control">

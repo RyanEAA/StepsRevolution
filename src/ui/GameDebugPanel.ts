@@ -41,6 +41,7 @@ function positionToLane(position: number): number {
 }
 
 export class GameDebugPanel {
+  private readonly onVisibilityPreferenceChange: ((visible: boolean) => void) | null;
   private readonly panel: HTMLElement;
   private readonly toggleButton: HTMLButtonElement;
   private readonly hideButton: HTMLButtonElement;
@@ -67,7 +68,11 @@ export class GameDebugPanel {
     this.setVisible(false);
   };
 
-  constructor(root: Document = document) {
+  constructor(
+    root: Document = document,
+    onVisibilityPreferenceChange: ((visible: boolean) => void) | null = null,
+  ) {
+    this.onVisibilityPreferenceChange = onVisibilityPreferenceChange;
     this.panel = requireElement<HTMLElement>(
       root,
       "#game-debug-panel",
@@ -141,7 +146,7 @@ export class GameDebugPanel {
     );
   }
 
-  public initialize(): void {
+  public initialize(initialVisible?: boolean): void {
     this.toggleButton.addEventListener(
       "click",
       this.handleToggleClick,
@@ -153,7 +158,7 @@ export class GameDebugPanel {
     );
 
     this.setVisible(
-      this.loadVisiblePreference(),
+      initialVisible ?? this.loadVisiblePreference(),
       false,
     );
   }
@@ -258,7 +263,7 @@ export class GameDebugPanel {
     );
   }
 
-  private setVisible(
+  public setVisible(
     visible: boolean,
     persist = true,
   ): void {
@@ -282,10 +287,9 @@ export class GameDebugPanel {
     if (persist) {
       localStorage.setItem(
         DEBUG_VISIBLE_STORAGE_KEY,
-        visible
-          ? "true"
-          : "false",
+        visible ? "true" : "false",
       );
+      this.onVisibilityPreferenceChange?.(visible);
     }
   }
 

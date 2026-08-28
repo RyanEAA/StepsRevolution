@@ -1,4 +1,7 @@
 import appHeaderTemplate from "./templates/app-header.html?raw";
+import mainMenuTemplate from "./templates/main-menu.html?raw";
+import settingsViewTemplate from "./templates/settings-view.html?raw";
+import calibrationViewTemplate from "./templates/calibration-view.html?raw";
 import libraryViewsTemplate from "./templates/library-views.html?raw";
 import songDialogTemplate from "./templates/song-dialog.html?raw";
 import gameplayViewTemplate from "./templates/gameplay-view.html?raw";
@@ -20,6 +23,9 @@ export function renderAppShell(): void {
 
   app.innerHTML = [
     appHeaderTemplate,
+    mainMenuTemplate,
+    settingsViewTemplate,
+    calibrationViewTemplate,
     multiplayerViewsTemplate,
     libraryViewsTemplate,
     songDialogTemplate,

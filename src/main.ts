@@ -1,6 +1,7 @@
 import "./style.css";
 
 import { ViewManager } from "./app/ViewManager";
+import { NavigationController } from "./app/NavigationController";
 import { AudioClock } from "./audio/AudioClock";
 import { Game } from "./game/Game";
 import { FolderImporter } from "./library/FolderImporter";
@@ -46,8 +47,13 @@ import { SharedSongPackageController } from "./controllers/SharedSongPackageCont
 import { MultiplayerStartController } from "./controllers/MultiplayerStartController";
 import { MultiplayerScoreController } from "./controllers/MultiplayerScoreController";
 import { MultiplayerScoreView } from "./ui/MultiplayerScoreView";
+import { SettingsStore } from "./settings/SettingsStore";
+import { SettingsController } from "./settings/SettingsController";
+import { CalibrationController } from "./calibration/CalibrationController";
 
 renderAppShell();
+
+const settingsStore = new SettingsStore();
 
 const localSession = new LocalSession();
 const sessionManager = new SessionManager(localSession);
@@ -69,18 +75,6 @@ const roomSession = new RoomSession({
 });
 const relayAssetClient = new RelayAssetClient(multiplayerServerUrl, roomSession);
 
-/* ========================================================
-    GLOBAL CONSTANTS
-  ========================================================= */
-
-const PLAYFIELD_WIDTH_STORAGE_KEY =
-  "dance-vision.playfield-width";
-
-const DEFAULT_PLAYFIELD_WIDTH = 1180;
-const MIN_PLAYFIELD_WIDTH = 400;
-const MAX_PLAYFIELD_WIDTH = 1180;
-
-
 /* =========================================================
    DOM HELPERS
    ========================================================= */
@@ -100,7 +94,12 @@ function requireElement<T extends Element>(
 }
 
 const gameDebugPanel =
-  new GameDebugPanel();
+  new GameDebugPanel(document, (visible) => {
+    settingsStore.update((settings) => ({
+      ...settings,
+      interface: { ...settings.interface, showDiagnostics: visible },
+    }));
+  });
 
 const cameraTrackingDebugPanel =
   new CameraTrackingDebugPanel();
@@ -125,6 +124,15 @@ const playfieldWidthValue =
    MAIN VIEWS
    ========================================================= */
 
+const mainMenuView =
+  requireElement<HTMLElement>("#main-menu-view");
+
+const settingsView =
+  requireElement<HTMLElement>("#settings-view");
+
+const calibrationView =
+  requireElement<HTMLElement>("#calibration-view");
+
 const libraryImportView =
   requireElement<HTMLElement>("#library-import-view");
 
@@ -144,27 +152,24 @@ const gameplayView =
 const resultsView =
   requireElement<HTMLElement>("#results-view");
 
-const modeSelectionView =
-  requireElement<HTMLElement>("#mode-selection-view");
-
 const multiplayerLobbyView =
   requireElement<HTMLElement>("#multiplayer-lobby-view");
 
 /* =========================================================
-   GLOBAL NAVIGATION
+   MENU NAVIGATION
    ========================================================= */
 
-const navLibraryButton =
+const mainMenuSettingsButton =
+  requireElement<HTMLButtonElement>("#main-menu-settings-button");
+
+const backFromLibraryImportButton =
   requireElement<HTMLButtonElement>(
-    "#nav-library-button",
+    "#back-from-library-import-button",
   );
 
-const navSessionButton =
-  requireElement<HTMLButtonElement>("#nav-session-button");
-
-const navGameButton =
+const backFromPacksButton =
   requireElement<HTMLButtonElement>(
-    "#nav-game-button",
+    "#back-from-packs-button",
   );
 
 const importAnotherLibraryButton =
@@ -270,7 +275,9 @@ const audioFileStatus =
    ========================================================= */
 
 const viewManager = new ViewManager({
-  "mode-selection": modeSelectionView,
+  "main-menu": mainMenuView,
+  settings: settingsView,
+  calibration: calibrationView,
   "library-import": libraryImportView,
   "pack-selection": packSelectionView,
   "song-selection": songSelectionView,
@@ -278,6 +285,8 @@ const viewManager = new ViewManager({
   gameplay: gameplayView,
   results: resultsView,
 });
+
+const navigationController = new NavigationController(viewManager);
 
 const keyboardInput = new KeyboardInput();
 const cameraManager = new CameraManager(cameraPreview);
@@ -292,6 +301,7 @@ const cameraController = new CameraController(
   input,
   cameraManager,
   cameraInput,
+  settingsStore,
 );
 const renderer = new CanvasRenderer(canvas);
 
@@ -417,12 +427,12 @@ gameplayController = new GameplayController({
   viewManager,
   runtimeChartBuilder,
   sessionManager,
-  navGameButton,
   callbacks: {
     closeSongDialog: () => songSelectionController.closeDialog(),
     hasLoadedLibrary: () => loadedLibrary !== null,
     hasSelectedPack: () => libraryView.getSelectedPack() !== null,
     stopCamera: () => cameraController.stopCamera(),
+    prepareInputForGameplay: () => cameraController.prepareForGameplay(),
     reportOnlineFinished: async () => {
       const room = roomSession.getState().room;
       if (!room) throw new Error("The multiplayer room is unavailable.");
@@ -827,11 +837,6 @@ async function handleLibraryFolderSelection(): Promise<void> {
       newLibrary,
     );
 
-    setPlayfieldWidth(
-      loadPlayfieldWidth(),
-      false,
-    );
-
     viewManager.show(
       "pack-selection",
     );
@@ -854,41 +859,6 @@ async function handleLibraryFolderSelection(): Promise<void> {
 const unsubscribeFromViewChanges =
   viewManager.subscribe(
     (currentView) => {
-      const libraryActive =
-        currentView === "library-import" ||
-        currentView === "pack-selection" ||
-        currentView === "song-selection";
-
-      const sessionActive =
-        currentView === "mode-selection" ||
-        currentView === "multiplayer-lobby";
-
-      const online =
-        sessionManager.getActiveSession().kind === "online";
-
-      navSessionButton.classList.toggle(
-        "navigation-button--active",
-        sessionActive,
-      );
-
-      navLibraryButton.classList.toggle(
-        "navigation-button--active",
-        libraryActive,
-      );
-
-      navLibraryButton.disabled = online;
-
-      navGameButton.classList.toggle(
-        "navigation-button--active",
-        currentView === "gameplay",
-      );
-
-      if (online) {
-        navGameButton.disabled = true;
-      } else {
-        gameplayController.updateButtonState();
-      }
-
       if (currentView === "gameplay") {
         /*
          * A canvas inside a hidden parent may previously have had
@@ -898,6 +868,10 @@ const unsubscribeFromViewChanges =
           renderer.resize();
           gameLoop.requestRender();
         });
+      }
+
+      if (currentView === "settings") {
+        void settingsController?.refreshCameraList();
       }
     },
   );
@@ -918,6 +892,9 @@ function cleanUp(): void {
 
   gameLoop.stop();
 
+  calibrationController.destroy();
+  settingsController.destroy();
+  unsubscribeSettings();
   cameraController.destroy();
   gameplayController.destroy();
   multiplayerController.destroy();
@@ -985,6 +962,37 @@ audioFileInput.addEventListener(
   },
 );
 
+backFromLibraryImportButton.addEventListener(
+  "click",
+  () => {
+    songSelectionController.closeDialog();
+    const activeSession = sessionManager.getActiveSession();
+
+    if (activeSession.kind === "online" && roomSession.getState().room) {
+      viewManager.show("multiplayer-lobby");
+      return;
+    }
+
+    viewManager.show(loadedLibrary ? "pack-selection" : "main-menu");
+  },
+);
+
+backFromPacksButton.addEventListener(
+  "click",
+  () => {
+    songSelectionController.clearSelection();
+    songSelectionController.closeDialog();
+
+    const activeSession = sessionManager.getActiveSession();
+    if (activeSession.kind === "online" && roomSession.getState().room) {
+      viewManager.show("multiplayer-lobby");
+      return;
+    }
+
+    navigationController.reset("main-menu");
+  },
+);
+
 backToPacksButton.addEventListener(
   "click",
   () => {
@@ -1018,36 +1026,15 @@ importAnotherLibraryButton.addEventListener(
   },
 );
 
-navLibraryButton.addEventListener(
-  "click",
-  () => {
-    songSelectionController.closeDialog();
-
-    if (loadedLibrary) {
-      viewManager.show(
-        "pack-selection",
-      );
-    } else {
-      viewManager.show(
-        "library-import",
-      );
-    }
-  },
-);
-
 playfieldWidthInput.addEventListener(
   "input",
   () => {
-    const width =
-      Number.parseInt(
-        playfieldWidthInput.value,
-        10,
-      );
-    if (!Number.isFinite(width)) {
-      return;
-    }
-
-    setPlayfieldWidth(width);
+    const width = Number.parseInt(playfieldWidthInput.value, 10);
+    if (!Number.isFinite(width)) return;
+    settingsStore.update((settings) => ({
+      ...settings,
+      gameplay: { ...settings.gameplay, playfieldWidth: width },
+    }));
   },
 );
 
@@ -1058,74 +1045,42 @@ playfieldWidthInput.addEventListener(
 
 cameraController.initialize();
 
-viewManager.show("mode-selection");
+const calibrationController = new CalibrationController({
+  cameraManager,
+  cameraInput,
+  settingsStore,
+  onBack: () => viewManager.show("settings"),
+});
+calibrationController.initialize();
+
+const settingsController = new SettingsController({
+  store: settingsStore,
+  cameraManager,
+  onBack: () => navigationController.back("main-menu"),
+  onOpenCalibration: () => {
+    calibrationController.enter();
+    viewManager.show("calibration");
+  },
+});
+settingsController.initialize();
+
+mainMenuSettingsButton.addEventListener("click", () => {
+  navigationController.navigate("settings");
+});
+
+const cameraTrackingDebugElement = requireElement<HTMLElement>(".camera-tracking-debug");
+const unsubscribeSettings = settingsStore.subscribe((settings) => {
+  const width = settings.gameplay.playfieldWidth;
+  gameContainer.style.setProperty("--playfield-width", `${width}px`);
+  playfieldWidthInput.value = width.toString();
+  playfieldWidthValue.value = `${width} px`;
+  gameDebugPanel.setVisible(settings.interface.showDiagnostics, false);
+  cameraTrackingDebugElement.hidden = !settings.interface.showDiagnostics;
+  document.documentElement.classList.toggle("reduced-motion", settings.interface.reducedMotion);
+});
+
+navigationController.reset("main-menu");
 
 gameLoop.start();
 
-gameDebugPanel.initialize();
-
-/* =========================================================
-    GAME-CANVAS WIDTH FUNCTIONS
-========================================================= */
-function clampPlayfieldWidth(
-  width: number,
-): number {
-  return Math.min(
-    Math.max(
-      width,
-      MIN_PLAYFIELD_WIDTH,
-    ),
-    MAX_PLAYFIELD_WIDTH,
-  );
-}
-
-function setPlayfieldWidth(
-  width: number,
-  persist = true,
-): void {
-  const clampedWidth =
-    clampPlayfieldWidth(width);
-
-  gameContainer.style.setProperty(
-    "--playfield-width",
-    `${clampedWidth}px`,
-  );
-
-  playfieldWidthInput.value =
-    clampedWidth.toString();
-
-  playfieldWidthValue.value =
-    `${clampedWidth} px`;
-
-  if (persist) {
-    localStorage.setItem(
-      PLAYFIELD_WIDTH_STORAGE_KEY,
-      clampedWidth.toString(),
-    );
-  }
-}
-
-function loadPlayfieldWidth(): number {
-  const storedValue =
-    localStorage.getItem(
-      PLAYFIELD_WIDTH_STORAGE_KEY,
-    );
-
-  if (!storedValue) {
-    return DEFAULT_PLAYFIELD_WIDTH;
-  }
-
-  const parsedValue =
-    Number.parseInt(
-      storedValue,
-      10,
-    );
-
-  if (!Number.isFinite(parsedValue)) {
-    return DEFAULT_PLAYFIELD_WIDTH;
-  }
-
-  return clampPlayfieldWidth(
-    parsedValue,
-  );
-}
+gameDebugPanel.initialize(settingsStore.get().interface.showDiagnostics);
