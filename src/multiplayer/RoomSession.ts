@@ -1,3 +1,4 @@
+import { createUuid } from "../utils/createUuid";
 import { PROTOCOL_VERSION } from "../../shared/constants";
 import type {
     ClientCommand,
@@ -113,7 +114,7 @@ export class RoomSession implements GameplaySession {
         this.credentialStore = options.credentialStore;
         this.createCommandId =
             options.createCommandId ??
-            (() => globalThis.crypto.randomUUID());
+            createUuid;
         this.credentials = this.credentialStore.load();
         this.state = {
             connectionState: this.client.getConnectionState(),
@@ -458,6 +459,7 @@ export class RoomSession implements GameplaySession {
             | "player.kick"
             | "readyCheck.begin"
             | "readyCheck.cancel"
+            | "selection.clear"
             | "preview.publish"
             | "preview.clear"
             | "songPackage.commit"

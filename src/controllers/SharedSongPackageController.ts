@@ -1,3 +1,4 @@
+import { createUuid } from "../utils/createUuid";
 import { ASSET_PROTOCOL_VERSION, runtimeSongPackagePayloadSchema } from "../../shared/relaySchemas";
 import type { RoomSongPackage, RuntimeSongPackagePayload, SharedChartDescriptor } from "../../shared/relaySchemas";
 import type { RelayAssetClient } from "../multiplayer/RelayAssetClient";
@@ -75,7 +76,7 @@ export class SharedSongPackageController {
             if (generation !== this.generation || audio.kind !== "song-audio" || chartPackage.kind !== "chart-package") return;
             const proposal: ProposedSongPackage = {
                 assetProtocolVersion: ASSET_PROTOCOL_VERSION,
-                packageId: crypto.randomUUID(),
+                packageId: createUuid(),
                 songId: packageData.runtime.songId,
                 title: song.title,
                 subtitle: song.simfile.subtitle,

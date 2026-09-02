@@ -417,7 +417,7 @@ export class MultiplayerController {
         const state = this.roomSession.getState();
         const selection = state.room?.selection;
         if (state.room?.songPackage) return;
-        const localPlayer = state.room?.players.find(
+        const localPlayer = state.room?.players?.find(
             (player) => player.playerId === state.localPlayerId,
         );
         if (!selection || !localPlayer ||
