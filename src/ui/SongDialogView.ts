@@ -131,7 +131,11 @@ export class SongDialogView {
     song.simfile.charts.forEach((chart, chartIndex) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "difficulty-button";
+      const difficultyClass = chart.difficulty
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-");
+
+      button.className = `difficulty-button difficulty-button--${difficultyClass}`;
       button.dataset.chartIndex = chartIndex.toString();
 
       const name = document.createElement("span");

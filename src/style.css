@@ -33,3 +33,6 @@
 
 /* mode selection, host/join forms, and multiplayer lobby */
 @import "src/styles/multiplayer.css";
+
+/* UI3 visual-system pass: Visince branding, library cards, song confirmation */
+@import "src/styles/ui3.css";

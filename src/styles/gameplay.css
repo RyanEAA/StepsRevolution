@@ -89,17 +89,38 @@
 
 .gameplay-stage {
     position: relative;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
+    display: grid;
+    --gameplay-side-rail-min: 0px;
+
+    grid-template-columns:
+        minmax(var(--gameplay-side-rail-min), 1fr)
+        minmax(0, var(--playfield-width, 1180px))
+        minmax(var(--gameplay-side-rail-min), 1fr);
+    align-items: start;
     gap: 16px;
 
-    width: 100%;
+    /*
+     * Gameplay is wider than the normal application content so the playfield
+     * can stay geometrically centered while optional multiplayer/debug rails
+     * occupy equal space on either side. Toggling debug no longer changes the
+     * center point of the game.
+     */
+    width: min(1720px, calc(100vw - 32px));
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
+.gameplay-stage:has(.multiplayer-score-sidebar:not([hidden])),
+.gameplay-stage:has(.game-debug-panel:not([hidden])) {
+    /* Equal rails keep the playfield center fixed even if only one panel is visible. */
+    --gameplay-side-rail-min: 230px;
 }
 
 
 .game-container {
-    flex: 0 1 var(--playfield-width, 1180px);
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
 
     position: relative;
 
@@ -121,7 +142,11 @@
 }
 
 .multiplayer-score-sidebar {
-    flex: 0 0 230px;
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: start;
+
+    width: min(230px, 100%);
     padding: 16px;
     background: rgba(10, 16, 31, 0.92);
     border: 1px solid var(--border-subtle);
@@ -243,7 +268,11 @@
 }
 
 .game-debug-panel {
-    flex: 0 0 250px;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;
+
+    width: min(250px, 100%);
 
     position: sticky;
     top: 16px;

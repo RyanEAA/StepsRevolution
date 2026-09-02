@@ -14,7 +14,7 @@ const server = new DanceVisionServer({
 });
 
 const url = await server.start();
-console.log(`Dance Vision room server listening at ${url}`);
+console.log(`Visince room server listening at ${url}`);
 
 let stopping = false;
 

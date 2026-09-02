@@ -138,8 +138,17 @@ export class LibraryView {
 
             title.textContent = pack.name;
 
+            const meta =
+                document.createElement("div");
+
+            meta.className =
+                "pack-card__meta";
+
             const details =
-                document.createElement("p");
+                document.createElement("span");
+
+            details.className =
+                "pack-card__count";
 
             details.textContent =
                 `${pack.songs.length} ${pack.songs.length === 1
@@ -147,9 +156,18 @@ export class LibraryView {
                     : "songs"
                 }`;
 
+            const browse =
+                document.createElement("span");
+
+            browse.className =
+                "pack-card__browse";
+            browse.textContent = "Browse →";
+
+            meta.append(details, browse);
+
             content.append(
                 title,
-                details,
+                meta,
             );
 
             card.append(content);
@@ -263,10 +281,33 @@ export class LibraryView {
                     " · Missing audio";
             }
 
+            const meterRow =
+                document.createElement("div");
+
+            meterRow.className =
+                "song-card__meter-row";
+
+            for (const chart of song.simfile.charts.slice(0, 5)) {
+                const chip = document.createElement("span");
+                chip.className = `song-card__meter-chip difficulty-${chart.difficulty.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+                chip.title = `${chart.difficulty} ${chart.meter}`;
+                chip.textContent = chart.meter.toString();
+                meterRow.append(chip);
+            }
+
+            const action =
+                document.createElement("span");
+
+            action.className =
+                "song-card__action";
+            action.textContent = song.audioFile ? "Select →" : "Audio missing";
+
             content.append(
                 title,
                 artist,
                 details,
+                meterRow,
+                action,
             );
 
             summaryButton.append(content);

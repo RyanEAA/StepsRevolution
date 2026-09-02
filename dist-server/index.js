@@ -2998,7 +2998,7 @@ var server = new DanceVisionServer({
   }
 });
 var url = await server.start();
-console.log(`Dance Vision room server listening at ${url}`);
+console.log(`Visince room server listening at ${url}`);
 var stopping = false;
 async function stop() {
   if (stopping) {

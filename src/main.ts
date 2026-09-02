@@ -411,6 +411,10 @@ songSelectionController = new SongSelectionController(
     },
     onConfirmSong(song: SongEntry): void {
       if (sessionManager.getActiveSession().kind === "online") {
+        songSelectionController.setRoomSelectionMode(false);
+        backFromLibraryImportButton.textContent = "← Back";
+        backFromPacksButton.textContent = "← Back";
+        backToPacksButton.textContent = "← Packs";
         viewManager.show("multiplayer-lobby");
         void sharedSongPackageController.confirmSong(song);
       }
@@ -536,8 +540,12 @@ multiplayerController = new MultiplayerController({
   view: multiplayerView,
   getSinglePlayerDestination: () =>
     loadedLibrary ? "pack-selection" : "library-import",
-  setRoomSelectionMode: (enabled) =>
-    songSelectionController.setRoomSelectionMode(enabled),
+  setRoomSelectionMode: (enabled) => {
+    songSelectionController.setRoomSelectionMode(enabled);
+    backFromLibraryImportButton.textContent = enabled ? "← Back to lobby" : "← Back";
+    backFromPacksButton.textContent = enabled ? "← Back to lobby" : "← Back";
+    backToPacksButton.textContent = enabled ? "← Back to lobby" : "← Packs";
+  },
   checkAvailability: (selection) =>
     chartAvailabilityIndex.checkSelection(selection),
   selectDifficulty: (chartId) =>
@@ -859,6 +867,13 @@ async function handleLibraryFolderSelection(): Promise<void> {
 const unsubscribeFromViewChanges =
   viewManager.subscribe(
     (currentView) => {
+      // The camera is intentionally scoped to gameplay and calibration only.
+      // A saved Camera preference means "use camera when gameplay starts",
+      // not "keep the webcam running while browsing menus/lobbies".
+      if (currentView !== "gameplay" && currentView !== "calibration") {
+        cameraController.stopCamera();
+      }
+
       if (currentView === "gameplay") {
         /*
          * A canvas inside a hidden parent may previously have had
@@ -969,7 +984,8 @@ backFromLibraryImportButton.addEventListener(
     const activeSession = sessionManager.getActiveSession();
 
     if (activeSession.kind === "online" && roomSession.getState().room) {
-      viewManager.show("multiplayer-lobby");
+      songSelectionController.clearSelection();
+      void multiplayerController.returnToLobbyFromSongBrowser();
       return;
     }
 
@@ -985,7 +1001,7 @@ backFromPacksButton.addEventListener(
 
     const activeSession = sessionManager.getActiveSession();
     if (activeSession.kind === "online" && roomSession.getState().room) {
-      viewManager.show("multiplayer-lobby");
+      void multiplayerController.returnToLobbyFromSongBrowser();
       return;
     }
 
@@ -997,6 +1013,12 @@ backToPacksButton.addEventListener(
   "click",
   () => {
     songSelectionController.clearSelection();
+
+    const activeSession = sessionManager.getActiveSession();
+    if (activeSession.kind === "online" && roomSession.getState().room) {
+      void multiplayerController.returnToLobbyFromSongBrowser();
+      return;
+    }
 
     viewManager.show(
       "pack-selection",

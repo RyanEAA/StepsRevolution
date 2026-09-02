@@ -39,6 +39,8 @@ class FakeRoomSession implements MultiplayerRoomSessionPort {
     public selection: ProposedRoomSelection | null = null;
     public availability: Availability | null = null;
     public ready = false;
+    public cancelReadyCheckCalls = 0;
+    public clearSelectionCalls = 0;
     public getState(): Readonly<RoomSessionState> { return this.state; }
     public subscribe(listener: (state: Readonly<RoomSessionState>) => void): () => void {
         listener(this.state);
@@ -55,12 +57,26 @@ class FakeRoomSession implements MultiplayerRoomSessionPort {
     public async setSelection(selection: ProposedRoomSelection): Promise<void> {
         this.selection = selection;
     }
+    public async clearSelection(): Promise<void> {
+        this.clearSelectionCalls += 1;
+        if (this.state.room) {
+            this.state = {
+                ...this.state,
+                room: {
+                    ...this.state.room,
+                    phase: "selecting",
+                    selection: null,
+                    songPackage: null,
+                },
+            };
+        }
+    }
     public async reportAvailability(availability: Availability): Promise<void> {
         this.availability = availability;
     }
     public async setReady(ready: boolean): Promise<void> { this.ready = ready; }
     public async beginReadyCheck(): Promise<void> {}
-    public async cancelReadyCheck(): Promise<void> {}
+    public async cancelReadyCheck(): Promise<void> { this.cancelReadyCheckCalls += 1; }
     public async kickPlayer(): Promise<void> {}
 }
 
@@ -130,6 +146,68 @@ describe("MultiplayerController", () => {
 
         expect(harness.sessionManager.active.kind).toBe("local");
         expect(harness.shown.at(-1)).toBe("library-import");
+    });
+
+    it("clears the canonical room song before the host changes songs", async () => {
+        const roomSelectionModes: boolean[] = [];
+        const roomSession = new FakeRoomSession();
+        roomSession.state = {
+            connectionState: "connected",
+            localPlayerId: "host-1",
+            lastError: null,
+            room: {
+                hostPlayerId: "host-1",
+                phase: "ready-check",
+            } as RoomSessionState["room"],
+        };
+        const sessionManager = new FakeSessionManager();
+        const view = new FakeView();
+        const shown: AppView[] = [];
+        const controller = new MultiplayerController({
+            roomSession,
+            sessionManager,
+            view,
+            viewManager: { show: (target) => shown.push(target) },
+            getSinglePlayerDestination: () => "pack-selection",
+            setRoomSelectionMode: (enabled) => roomSelectionModes.push(enabled),
+            checkAvailability: (selection) => ({
+                status: "song-missing",
+                selectionRevision: selection.selectionRevision,
+                chartHash: null,
+                audioReady: false,
+                match: null,
+            }),
+        });
+        controller.initialize();
+
+        view.callbacks?.onBrowseHostLibrary();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(roomSession.clearSelectionCalls).toBe(1);
+        expect(roomSelectionModes.at(-1)).toBe(true);
+        expect(shown.at(-1)).toBe("pack-selection");
+    });
+
+    it("returns from the song browser to a clean multiplayer lobby", async () => {
+        const harness = createHarness();
+        harness.roomSession.state = {
+            connectionState: "connected",
+            localPlayerId: "host-1",
+            lastError: null,
+            room: {
+                hostPlayerId: "host-1",
+                phase: "ready-check",
+                selection: null,
+                songPackage: { title: "Old song" },
+            } as RoomSessionState["room"],
+        };
+
+        await harness.controller.returnToLobbyFromSongBrowser();
+
+        expect(harness.roomSession.clearSelectionCalls).toBe(1);
+        expect(harness.roomSession.state.room?.phase).toBe("selecting");
+        expect(harness.roomSession.state.room?.songPackage).toBeNull();
+        expect(harness.shown.at(-1)).toBe("multiplayer-lobby");
     });
 
     it("creates a room and activates the online lobby", async () => {

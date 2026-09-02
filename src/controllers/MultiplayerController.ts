@@ -22,6 +22,7 @@ export interface MultiplayerRoomSessionPort extends GameplaySession {
     leaveRoom(): Promise<void>;
     disconnect(): void;
     setSelection(selection: ProposedRoomSelection): Promise<void>;
+    clearSelection(): Promise<void>;
     reportAvailability(availability: Availability): Promise<void>;
     setReady(ready: boolean): Promise<void>;
     beginReadyCheck(): Promise<void>;
@@ -224,6 +225,10 @@ export class MultiplayerController {
     };
 
     private readonly browseHostLibrary = (): void => {
+        void this.openHostSongBrowser();
+    };
+
+    private async openHostSongBrowser(): Promise<void> {
         const state = this.roomSession.getState();
         if (!state.room || state.localPlayerId !== state.room.hostPlayerId) {
             this.view.setSelectionStatus(
@@ -231,9 +236,73 @@ export class MultiplayerController {
             );
             return;
         }
+
+        /*
+         * Changing songs is a fresh room-selection transaction. Clear the
+         * canonical selection/package before opening the library so every
+         * player's ready, chart-choice, preparation, and gameplay state is
+         * reset by the server state machine. If the host backs out, the room
+         * therefore returns to a clean lobby with no stale song attached.
+         */
+        if (
+            state.room.selection !== null ||
+            state.room.songPackage !== null ||
+            state.room.phase === "ready-check"
+        ) {
+            this.view.setSelectionStatus("Resetting the room for a new song…");
+            try {
+                await this.roomSession.clearSelection();
+            } catch (error) {
+                this.view.setSelectionStatus(
+                    error instanceof Error
+                        ? error.message
+                        : "Could not reset the room song.",
+                );
+                return;
+            }
+        }
+
+        this.clearPendingSelection();
         this.setRoomSelectionMode(true);
         this.viewManager.show(this.getSinglePlayerDestination());
-    };
+    }
+
+    public async returnToLobbyFromSongBrowser(): Promise<void> {
+        const state = this.roomSession.getState();
+        const room = state.room;
+
+        this.clearPendingSelection();
+        this.setRoomSelectionMode(false);
+
+        if (
+            room &&
+            state.localPlayerId === room.hostPlayerId &&
+            (room.selection !== null || room.songPackage !== null || room.phase === "ready-check")
+        ) {
+            try {
+                await this.roomSession.clearSelection();
+            } catch (error) {
+                this.view.setSelectionStatus(
+                    error instanceof Error
+                        ? error.message
+                        : "Could not reset the room song.",
+                );
+                return;
+            }
+        }
+
+        this.view.setSelectionStatus("");
+        this.viewManager.show("multiplayer-lobby");
+    }
+
+    private clearPendingSelection(): void {
+        this.selectionGeneration += 1;
+        this.pendingSelection = null;
+        if (this.selectionTimer) {
+            clearTimeout(this.selectionTimer);
+            this.selectionTimer = null;
+        }
+    }
 
     private readonly importLocalLibrary = (): void => {
         this.setRoomSelectionMode(false);

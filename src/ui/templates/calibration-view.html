@@ -21,6 +21,23 @@
         <button id="calibration-disable-camera" type="button" class="secondary-button" disabled>Disable camera</button>
       </div>
       <p id="calibration-status" class="camera-status" aria-live="polite">Camera is off.</p>
+
+      <aside class="calibration-setup-tips" aria-labelledby="calibration-setup-tips-title">
+        <div class="calibration-setup-tips__heading">
+          <span class="calibration-setup-tips__icon" aria-hidden="true">✓</span>
+          <div>
+            <p class="eyebrow">Before you play</p>
+            <h3 id="calibration-setup-tips-title">Help the camera see your legs clearly</h3>
+          </div>
+        </div>
+        <ul>
+          <li>Wear shoes and clothing that contrast with your floor and background.</li>
+          <li>Use even lighting and avoid a bright window or light directly behind you.</li>
+          <li>Keep your full lower body and both feet inside the camera frame.</li>
+          <li>If tracking is unstable, move farther from the camera or simplify the background.</li>
+        </ul>
+        <p class="calibration-setup-tips__note">Visince can smooth brief tracking mistakes, but strong visual contrast gives the pose model the best signal.</p>
+      </aside>
     </section>
 
     <section class="calibration-readout-card">

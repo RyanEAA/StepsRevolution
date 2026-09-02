@@ -203,8 +203,8 @@ export class GameplayController {
       this.audioFileStatus.textContent =
         `${song.audioFile.name} — ${this.formatTime(this.audioClock.getDurationSeconds())}`;
 
-      await this.callbacks.prepareInputForGameplay();
       this.viewManager.show("gameplay");
+      await this.callbacks.prepareInputForGameplay();
 
       this.game.start();
       this.gameLoop.syncGameStatus();
@@ -274,9 +274,9 @@ export class GameplayController {
       throw new Error("The shared song and selected difficulty are not prepared.");
     }
     this.cancelOnlineStart(false);
+    this.viewManager.show("gameplay");
     await this.callbacks.prepareInputForGameplay();
     await this.audioClock.scheduleFromStart(localPerformanceTimeMs);
-    this.viewManager.show("gameplay");
     this.countdownOverlay.hidden = false;
     const renderCountdown = (): void => {
       const remainingMs = localPerformanceTimeMs - performance.now();
@@ -488,8 +488,8 @@ export class GameplayController {
 
   private async replayLocalGame(): Promise<void> {
     try {
-      await this.callbacks.prepareInputForGameplay();
       this.viewManager.show("gameplay");
+      await this.callbacks.prepareInputForGameplay();
       await this.restart();
     } catch (error) {
       this.reportAudioError(error);

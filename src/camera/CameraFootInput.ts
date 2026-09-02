@@ -22,6 +22,10 @@ import {
 } from "./FootPositionEstimator";
 
 import {
+    FootIdentityTracker,
+} from "./FootIdentityTracker";
+
+import {
     PoseOverlayRenderer,
 } from "./PoseOverlayRenderer";
 
@@ -47,6 +51,10 @@ export interface CameraFootDebugState {
     leftVisible: boolean;
     rightVisible: boolean;
 
+    identityCorrectionActive: boolean;
+    leftOcclusionHold: boolean;
+    rightOcclusionHold: boolean;
+
     schedulerMode: CameraFrameSchedulerMode;
     inferenceDurationMs: number;
     inferenceFramesPerSecond: number;
@@ -67,11 +75,15 @@ export class CameraFootInput implements InputSource {
     private readonly estimator:
         FootPositionEstimator;
 
+    private readonly identityTracker =
+        new FootIdentityTracker();
+
     private unsubscribeFromCameraStatus:
         (() => void) | null = null;
 
     private active = false;
     private destroyed = false;
+    private mirrored = true;
     private previousInferenceTimeMs = -Infinity;
     private smoothedInferenceFramesPerSecond = 0;
 
@@ -92,6 +104,9 @@ export class CameraFootInput implements InputSource {
         rightConfidence: 0,
         leftVisible: false,
         rightVisible: false,
+        identityCorrectionActive: false,
+        leftOcclusionHold: false,
+        rightOcclusionHold: false,
         schedulerMode: "animation-frame",
         inferenceDurationMs: 0,
         inferenceFramesPerSecond: 0,
@@ -219,9 +234,14 @@ export class CameraFootInput implements InputSource {
             if (!landmarks) {
                 /*
                  * Inference ran successfully, but MediaPipe did not
-                 * detect a pose.
+                 * detect a pose. Feed an empty estimate through the
+                 * temporal tracker so brief occlusions do not cause
+                 * immediate input dropouts.
                  */
-                this.setInvisible(nowMs);
+                this.applyEstimate(
+                    this.estimator.estimate(undefined),
+                    nowMs,
+                );
                 this.overlayRenderer.clear();
                 return;
             }
@@ -260,9 +280,15 @@ export class CameraFootInput implements InputSource {
     public setMirrored(
         mirrored: boolean,
     ): void {
+        if (this.mirrored === mirrored) {
+            return;
+        }
+
+        this.mirrored = mirrored;
         this.coordinateMapper.setMirrored(
             mirrored,
         );
+        this.identityTracker.reset();
     }
 
     public setVisibilityThreshold(
@@ -313,9 +339,17 @@ export class CameraFootInput implements InputSource {
     }
 
     private applyEstimate(
-        feet: EstimatedFeet,
+        rawFeet: EstimatedFeet,
         timestampMs: number,
     ): void {
+        const tracking =
+            this.identityTracker.update(
+                rawFeet,
+                timestampMs,
+            );
+
+        const feet = tracking.feet;
+
         this.footState = {
             leftX: feet.left.displayX,
             rightX: feet.right.displayX,
@@ -326,12 +360,15 @@ export class CameraFootInput implements InputSource {
 
         this.debugState = {
             ...this.debugState,
+            // Raw values preserve MediaPipe's labels so diagnostics can
+            // reveal when temporal identity correction is taking over.
             leftSourceX:
-                feet.left.sourceX,
+                rawFeet.left.sourceX,
 
             rightSourceX:
-                feet.right.sourceX,
+                rawFeet.right.sourceX,
 
+            // Game X values are the stabilized, identity-tracked output.
             leftDisplayX:
                 feet.left.displayX,
 
@@ -349,6 +386,15 @@ export class CameraFootInput implements InputSource {
 
             rightVisible:
                 feet.right.visible,
+
+            identityCorrectionActive:
+                tracking.correctedSwap,
+
+            leftOcclusionHold:
+                tracking.leftHeldThroughOcclusion,
+
+            rightOcclusionHold:
+                tracking.rightHeldThroughOcclusion,
         };
     }
 
@@ -368,6 +414,9 @@ export class CameraFootInput implements InputSource {
             rightConfidence: 0,
             leftVisible: false,
             rightVisible: false,
+            identityCorrectionActive: false,
+            leftOcclusionHold: false,
+            rightOcclusionHold: false,
         };
     }
 
@@ -376,6 +425,7 @@ export class CameraFootInput implements InputSource {
     ): void => {
         if (status === "running") {
             this.poseTracker.resetVideoState();
+            this.identityTracker.reset();
             this.resetInferencePerformance();
             this.updateScheduling();
             return;
@@ -387,6 +437,7 @@ export class CameraFootInput implements InputSource {
         ) {
             this.frameScheduler.stop();
             this.poseTracker.resetVideoState();
+            this.identityTracker.reset();
             this.resetInferencePerformance();
             this.setInvisible(performance.now());
             this.overlayRenderer.clear();

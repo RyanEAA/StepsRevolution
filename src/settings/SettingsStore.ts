@@ -33,7 +33,7 @@ export class SettingsStore {
     const result = DanceVisionSettingsSchema.safeParse(candidate);
 
     if (!result.success) {
-      console.warn("Ignored invalid Dance Vision settings update.", result.error);
+      console.warn("Ignored invalid Visince settings update.", result.error);
       return;
     }
 
@@ -68,7 +68,7 @@ export class SettingsStore {
           return result.data;
         }
       } catch (error) {
-        console.warn("Could not parse stored Dance Vision settings.", error);
+        console.warn("Could not parse stored Visince settings.", error);
       }
     }
 
@@ -108,7 +108,7 @@ export class SettingsStore {
         JSON.stringify(this.settings),
       );
     } catch (error) {
-      console.warn("Could not save Dance Vision settings.", error);
+      console.warn("Could not save Visince settings.", error);
     }
   }
 

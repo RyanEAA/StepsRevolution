@@ -197,11 +197,17 @@ export class MultiplayerView {
             return item;
         }));
 
+        const hasRoomSong = room.selection !== null || room.songPackage !== null;
         this.roleMessage.textContent = state.localPlayerId === room.hostPlayerId
-            ? "You are the host. Choose one song; every player chooses their own difficulty."
+            ? hasRoomSong
+                ? "You are the host. You can change the room song before the countdown starts."
+                : "You are the host. Choose one song; every player chooses their own difficulty."
             : "The host chooses the song. You choose your own difficulty here.";
         this.hostSongSelectionButton.hidden =
             state.localPlayerId !== room.hostPlayerId;
+        this.hostSongSelectionButton.textContent = hasRoomSong
+            ? "Change song"
+            : "Choose a song";
 
         const localPlayer = room.players.find(
             (player) => player.playerId === state.localPlayerId,

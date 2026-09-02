@@ -1,0 +1,577 @@
+/* =========================================================
+   UI3 — VISINCE VISUAL SYSTEM
+   Lightweight CSS-only presentation pass. No new render loops,
+   filters on gameplay content, or animation-heavy effects.
+   ========================================================= */
+
+:root {
+    --visince-cyan: #64e9eb;
+    --visince-purple: #9a87ff;
+    --visince-pink: #f16ab6;
+    --visince-lime: #a8ea7a;
+    --visince-panel: rgba(8, 13, 29, 0.96);
+    --visince-panel-2: rgba(13, 21, 43, 0.94);
+    --visince-line: rgba(116, 235, 238, 0.26);
+}
+
+/* Brand --------------------------------------------------- */
+.app-header {
+    min-height: 52px;
+}
+
+.app-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.app-brand .eyebrow {
+    margin: 0;
+    color: var(--visince-cyan);
+    font-size: 1rem;
+    font-style: italic;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+}
+
+.app-brand h1 {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.main-menu-title {
+    display: block;
+    font-size: clamp(4.2rem, 11vw, 8.5rem);
+    line-height: 0.82;
+    letter-spacing: -0.07em;
+}
+
+.main-menu-title span,
+.main-menu-title span:first-child,
+.main-menu-title span:last-child {
+    display: inline-block;
+    transform: skewX(-6deg);
+    color: #f8fbff;
+    text-shadow:
+        0 5px 0 rgba(241, 106, 182, 0.25),
+        0 0 28px rgba(100, 233, 235, 0.1);
+}
+
+/* Shared music browser shell ------------------------------ */
+.library-section {
+    padding: clamp(14px, 2vw, 22px);
+}
+
+.library-section__header {
+    position: relative;
+    overflow: hidden;
+    gap: 18px;
+    padding: 18px 20px;
+    background:
+        linear-gradient(110deg, rgba(100, 233, 235, 0.07), transparent 42%),
+        rgba(7, 11, 25, 0.82);
+    border-color: rgba(100, 233, 235, 0.18);
+    border-radius: 18px;
+}
+
+.library-section__header::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 34%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--visince-purple));
+    content: "";
+    pointer-events: none;
+}
+
+.library-section__header .eyebrow {
+    color: var(--visince-cyan);
+}
+
+.library-section__header h2 {
+    letter-spacing: -0.025em;
+}
+
+.library-section__header .view-description {
+    max-width: 580px;
+    font-size: 0.84rem;
+}
+
+/* Pack cards ---------------------------------------------- */
+.pack-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
+}
+
+.pack-card {
+    position: relative;
+    background: var(--visince-panel-2);
+    border-color: rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.pack-card::before {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    content: "";
+    pointer-events: none;
+}
+
+.pack-card:hover,
+.pack-card:focus-visible {
+    transform: translateY(-3px);
+    background: rgba(16, 26, 51, 0.98);
+    border-color: rgba(100, 233, 235, 0.55);
+}
+
+.pack-card:hover::before,
+.pack-card:focus-visible::before {
+    border-color: rgba(154, 135, 255, 0.24);
+}
+
+.pack-card .library-card__artwork {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background:
+        linear-gradient(145deg, rgba(100, 233, 235, 0.15), transparent 45%),
+        linear-gradient(325deg, rgba(241, 106, 182, 0.14), transparent 42%),
+        #10182f;
+}
+
+.pack-card .library-card__artwork::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(5, 8, 18, 0.42), transparent 45%);
+    content: "";
+    pointer-events: none;
+}
+
+.pack-card .library-card__content {
+    min-height: 92px;
+    padding: 14px 15px 15px;
+}
+
+.pack-card .library-card__content h3 {
+    font-size: 0.98rem;
+    letter-spacing: -0.01em;
+}
+
+.pack-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.pack-card__count {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+
+.pack-card__browse {
+    color: var(--visince-cyan);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* Song cards ---------------------------------------------- */
+.song-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.song-card {
+    overflow: hidden;
+    background: var(--visince-panel-2);
+    border-color: rgba(255, 255, 255, 0.11);
+    border-radius: 14px;
+}
+
+.song-card:hover {
+    background: rgba(17, 27, 53, 0.98);
+    border-color: rgba(100, 233, 235, 0.42);
+}
+
+.song-card__summary {
+    grid-template-columns: minmax(126px, 32%) minmax(0, 1fr);
+    min-height: 132px;
+}
+
+.song-card .library-card__artwork {
+    position: relative;
+    min-height: 132px;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.song-card .library-card__content {
+    position: relative;
+    display: grid;
+    align-content: center;
+    gap: 2px;
+    min-height: 132px;
+    padding: 15px 16px;
+}
+
+.song-card .library-card__content h3 {
+    font-size: 1rem;
+}
+
+.song-card .library-card__content p {
+    margin-top: 4px;
+}
+
+.song-card .library-card__details {
+    margin-top: 7px;
+    color: rgba(255, 255, 255, 0.44);
+}
+
+.song-card__meter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.song-card__meter-chip {
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 6px;
+    color: rgba(255, 255, 255, 0.84);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.song-card__meter-chip.difficulty-beginner,
+.song-card__meter-chip.difficulty-easy {
+    border-color: rgba(168, 234, 122, 0.42);
+}
+
+.song-card__meter-chip.difficulty-medium {
+    border-color: rgba(100, 233, 235, 0.45);
+}
+
+.song-card__meter-chip.difficulty-hard {
+    border-color: rgba(241, 106, 182, 0.5);
+}
+
+.song-card__meter-chip.difficulty-challenge,
+.song-card__meter-chip.difficulty-edit {
+    border-color: rgba(154, 135, 255, 0.58);
+}
+
+.song-card__action {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    color: var(--visince-cyan);
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.library-card--unavailable .song-card__action {
+    color: rgba(255, 132, 147, 0.8);
+}
+
+.song-card--selected {
+    border-color: rgba(100, 233, 235, 0.82);
+    box-shadow: inset 0 0 0 1px rgba(100, 233, 235, 0.2);
+}
+
+/* Song confirmation / difficulty dialog ------------------ */
+.song-dialog {
+    width: min(900px, calc(100vw - 28px));
+    max-height: min(860px, calc(100vh - 28px));
+    background:
+        linear-gradient(145deg, rgba(100, 233, 235, 0.035), transparent 42%),
+        rgba(7, 11, 25, 0.99);
+    border-color: rgba(100, 233, 235, 0.32);
+    border-radius: 22px;
+}
+
+.song-dialog__content {
+    grid-template-columns: minmax(280px, 0.95fr) minmax(340px, 1.25fr);
+}
+
+.song-dialog__artwork {
+    position: relative;
+    min-height: 470px;
+    background:
+        radial-gradient(circle at 20% 18%, rgba(100, 233, 235, 0.24), transparent 42%),
+        radial-gradient(circle at 80% 82%, rgba(241, 106, 182, 0.2), transparent 44%),
+        #10182f;
+}
+
+.song-dialog__artwork::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(5, 8, 18, 0.38), transparent 50%);
+    content: "";
+    pointer-events: none;
+}
+
+.song-dialog__details {
+    padding: 38px 30px 30px;
+}
+
+.song-dialog__step {
+    color: var(--visince-cyan);
+}
+
+.song-dialog__details h3 {
+    font-size: clamp(1.65rem, 4vw, 2.45rem);
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+}
+
+.selected-song-metadata {
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.selected-song-metadata span {
+    padding: 6px 9px;
+    color: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    font-size: 0.7rem;
+}
+
+.selected-song-preview-status {
+    min-height: 36px;
+    margin: 16px 0 10px;
+    padding: 9px 11px;
+    color: var(--visince-cyan);
+    background: rgba(100, 233, 235, 0.055);
+    border: 1px solid rgba(100, 233, 235, 0.13);
+    border-radius: 9px;
+}
+
+.song-dialog__difficulty-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 20px 0 10px;
+}
+
+.song-dialog__difficulty-heading h4 {
+    margin: 2px 0 0;
+    color: var(--text-primary);
+    font-size: 0.94rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.song-dialog__mini-label,
+.song-dialog__difficulty-hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.63rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.song-card__difficulty-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.difficulty-button {
+    min-height: 64px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.045);
+    border-radius: 10px;
+}
+
+.difficulty-button::before {
+    width: 3px;
+    height: 32px;
+    grid-row: span 2;
+    align-self: center;
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    content: "";
+}
+
+.difficulty-button {
+    grid-template-columns: 3px minmax(0, 1fr) auto;
+    column-gap: 10px;
+}
+
+.difficulty-button__name,
+.difficulty-button small {
+    grid-column: 2;
+}
+
+.difficulty-button__meter {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+}
+
+.difficulty-button--beginner::before,
+.difficulty-button--easy::before {
+    background: var(--visince-lime);
+}
+
+.difficulty-button--medium::before {
+    background: var(--visince-cyan);
+}
+
+.difficulty-button--hard::before {
+    background: var(--visince-pink);
+}
+
+.difficulty-button--challenge::before,
+.difficulty-button--edit::before {
+    background: var(--visince-purple);
+}
+
+.difficulty-button--selected {
+    background: rgba(100, 233, 235, 0.1);
+    border-color: rgba(100, 233, 235, 0.66);
+}
+
+#play-selected-song-button {
+    min-height: 48px;
+    margin-top: 16px;
+    background: linear-gradient(110deg, rgba(100, 233, 235, 0.22), rgba(154, 135, 255, 0.18));
+    border-color: rgba(100, 233, 235, 0.42);
+    border-radius: 11px;
+    font-weight: 900;
+}
+
+@media (max-width: 900px) {
+    .pack-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .song-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .app-brand {
+        gap: 7px;
+    }
+
+    .main-menu-title {
+        font-size: clamp(4rem, 21vw, 6.2rem);
+    }
+
+    .library-section__header {
+        grid-template-columns: 1fr;
+    }
+
+    .library-section__header .back-button {
+        justify-self: start;
+    }
+
+    .library-header-action {
+        grid-column: auto;
+    }
+
+    .pack-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .song-card__summary {
+        grid-template-columns: 108px minmax(0, 1fr);
+        min-height: 118px;
+    }
+
+    .song-card .library-card__artwork,
+    .song-card .library-card__content {
+        min-height: 118px;
+    }
+
+    .song-dialog__content {
+        grid-template-columns: 1fr;
+    }
+
+    .song-dialog__artwork {
+        min-height: 0;
+    }
+
+    .song-dialog__artwork img {
+        aspect-ratio: 2.2 / 1;
+        min-height: 0;
+    }
+
+    .song-dialog__details {
+        padding: 22px 18px 20px;
+    }
+
+    .song-dialog__difficulty-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+@media (max-width: 430px) {
+    .app-brand h1 {
+        display: none;
+    }
+
+    .pack-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pack-card .library-card__content {
+        min-height: 84px;
+        padding: 11px 11px 12px;
+    }
+
+    .pack-card__browse {
+        display: none;
+    }
+
+    .song-card__summary {
+        grid-template-columns: 92px minmax(0, 1fr);
+    }
+
+    .song-card__action {
+        display: none;
+    }
+
+    .song-card__difficulty-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 350px) {
+    .pack-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pack-card,
+    .song-card,
+    .difficulty-button {
+        transition: none;
+    }
+}

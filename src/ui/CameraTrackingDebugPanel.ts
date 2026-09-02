@@ -38,6 +38,8 @@ export class CameraTrackingDebugPanel {
   private readonly rightConfidence: HTMLElement;
   private readonly leftVisible: HTMLElement;
   private readonly rightVisible: HTMLElement;
+  private readonly identityCorrection: HTMLElement;
+  private readonly occlusionHold: HTMLElement;
   private readonly schedulerMode: HTMLElement;
   private readonly inferenceDuration: HTMLElement;
   private readonly inferenceFramesPerSecond: HTMLElement;
@@ -96,6 +98,18 @@ export class CameraTrackingDebugPanel {
       requireElement<HTMLElement>(
         this.panel,
         "#camera-right-visible",
+      );
+
+    this.identityCorrection =
+      requireElement<HTMLElement>(
+        this.panel,
+        "#camera-identity-correction",
+      );
+
+    this.occlusionHold =
+      requireElement<HTMLElement>(
+        this.panel,
+        "#camera-occlusion-hold",
       );
 
     this.schedulerMode =
@@ -184,6 +198,25 @@ export class CameraTrackingDebugPanel {
       debug.rightVisible
         ? "Yes"
         : "No",
+    );
+
+    setTextIfChanged(
+      this.identityCorrection,
+      debug.identityCorrectionActive
+        ? "Swap corrected"
+        : "No",
+    );
+
+    const heldFeet = [
+      debug.leftOcclusionHold ? "Left" : "",
+      debug.rightOcclusionHold ? "Right" : "",
+    ].filter(Boolean);
+
+    setTextIfChanged(
+      this.occlusionHold,
+      heldFeet.length > 0
+        ? heldFeet.join(" + ")
+        : "None",
     );
 
     setTextIfChanged(

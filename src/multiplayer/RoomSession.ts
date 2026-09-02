@@ -234,6 +234,10 @@ export class RoomSession implements GameplaySession {
         return response;
     }
 
+    public async clearSelection(): Promise<void> {
+        await this.retryRevisioned(() => this.sendRevisioned("selection.clear", {}));
+    }
+
     public async setSelection(
         selection: ProposedRoomSelection,
     ): Promise<void> {

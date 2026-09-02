@@ -124,7 +124,7 @@ export class SettingsController {
   }
 
   private readonly handleReset = (): void => {
-    if (window.confirm("Reset all Dance Vision settings to their defaults?")) {
+    if (window.confirm("Reset all Visince settings to their defaults?")) {
       this.store.reset();
     }
   };

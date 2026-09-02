@@ -1,6 +1,6 @@
-# Dance Vision
+# Visince
 
-Dance Vision is a browser-based rhythm game inspired by DanceRush, StepMania,
+Visince is a browser-based rhythm game inspired by DanceRush, StepMania,
 and other arcade dance games. It imports StepMania song packs and lets players
 hit four-lane charts by moving their feet horizontally in front of a webcam.
 
@@ -176,7 +176,7 @@ available before expiry. The default is 30 minutes. Expired assets are cleaned
 periodically by the server.
 
 Production should set `RELAY_TEMP_DIR` to a private directory that is writable
-by the Dance Vision service user and is not served directly by Nginx.
+by the Visince service user and is not served directly by Nginx.
 
 The browser client uses `http://localhost:3001` during Vite development.
 
@@ -214,7 +214,7 @@ then validates each Ready action.
 
 ## Importing songs
 
-Import a StepMania `Songs` directory from the Library view. Dance Vision scans
+Import a StepMania `Songs` directory from the Library view. Visince scans
 the selected directory locally and builds its in-memory song library.
 
 Expected structure:

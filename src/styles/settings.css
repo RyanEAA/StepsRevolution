@@ -323,6 +323,55 @@
     animation-iteration-count: 1 !important;
 }
 
+
+.calibration-setup-tips {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    background: rgba(4, 8, 20, 0.62);
+}
+
+.calibration-setup-tips__heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.calibration-setup-tips__heading h3 {
+    margin: 2px 0 0;
+    font-size: 1rem;
+}
+
+.calibration-setup-tips__heading .eyebrow {
+    margin: 0;
+}
+
+.calibration-setup-tips__icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(86, 232, 255, 0.45);
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.calibration-setup-tips ul {
+    margin: 14px 0 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+.calibration-setup-tips__note {
+    margin: 14px 0 0;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+}
+
 @media (max-width: 900px) {
     .settings-layout,
     .calibration-layout {
